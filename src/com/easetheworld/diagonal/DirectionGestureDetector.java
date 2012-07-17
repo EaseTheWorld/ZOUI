@@ -11,7 +11,7 @@ public class DirectionGestureDetector {
 	private final DirectionGestureListener mGestureListener;
 	
 	public static interface DirectionChangeListener {
-		public void onTurningBack(int count, float sx, float sy, float ex, float ey);
+		public void onTurningBack(int count, float distanceX, float distanceY);
 	}
 	
 	public DirectionGestureDetector(Context context, DirectionChangeListener listener) {
@@ -76,9 +76,11 @@ public class DirectionGestureDetector {
 		private double mLastLength;
 		
 		private void fireTurningBack(float curX, float curY, boolean force) {
-			double length = distance(mStartX, mStartY, curX, curY);
+			float dX= curX - mStartX;
+			float dY= curY - mStartY;
+			float length = (dX * dX) + (dY * dY);
 			if (force || (length * LENGTH_THRESHOLD_FACTOR > mLastLength)) { // long enough
-				mTurningBackListener.onTurningBack(mTurningCount++, mStartX, mStartY, curX, curY);
+				mTurningBackListener.onTurningBack(mTurningCount++, dX, dY);
 				mLastLength = length;
 			}
 		}
@@ -86,13 +88,6 @@ public class DirectionGestureDetector {
 		// Math util. Inner product between 2 vectors
 		private static double innerProduct(float dX1, float dY1, float dX2, float dY2) {
 			return dX1*dX2 + dY1*dY2;
-		}
-		
-		// Math util. Distance square between 2 points
-		private static double distance(float sx, float sy, float ex, float ey) {
-			float dx = ex - sx;
-			float dy = ey - sy;
-			return (dx * dx) + (dy * dy);
 		}
 	}
 }

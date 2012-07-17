@@ -24,8 +24,8 @@ public class MainActivity extends Activity {
 	
 	private DirectionGestureDetector.DirectionChangeListener mTurningBackListener = new DirectionGestureDetector.DirectionChangeListener() {
 		@Override
-		public void onTurningBack(int count, float sx, float sy, float ex, float ey) {
-			Log.i("nora", "count="+count+", x="+sx+"->"+ex+", y="+sy+"->"+ey);
+		public void onTurningBack(int count, float distanceX, float distanceY) {
+			Log.i("nora", "count="+count+", x="+distanceX+", y="+distanceY);
 			mTextView.setText("Turn Back "+count);
 		}
 	};
