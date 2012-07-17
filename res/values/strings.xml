@@ -1,7 +1,7 @@
 <resources>
 
     <string name="app_name">Direction Change</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="hello_world">Scroll back and forth in any direction.</string>
     <string name="menu_settings">Settings</string>
 
 </resources>
