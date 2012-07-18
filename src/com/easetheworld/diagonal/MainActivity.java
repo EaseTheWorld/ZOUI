@@ -10,7 +10,7 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
-    private DirectionGestureDetector mGestureDetector;
+    private DirectionChangeDetector mGestureDetector;
     private TextView mTextView;
     
 	@Override
@@ -19,13 +19,13 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         mTextView = (TextView)findViewById(android.R.id.text1);
         
-        mGestureDetector = new DirectionGestureDetector(this, mTurningBackListener);
+        mGestureDetector = new DirectionChangeDetector(this, mTurningBackListener);
     }
 	
-	private DirectionGestureDetector.DirectionChangeListener mTurningBackListener = new DirectionGestureDetector.DirectionChangeListener() {
+	private DirectionChangeDetector.DirectionChangeListener mTurningBackListener = new DirectionChangeDetector.DirectionChangeListener() {
 		@Override
-		public void onTurningBack(int count, float distanceX, float distanceY) {
-			Log.i("nora", "count="+count+", x="+distanceX+", y="+distanceY);
+		public void onDirectionChanged(int count, double angleDegrees) {
+			Log.i("nora", "count="+count+", angle="+angleDegrees);
 			mTextView.setText("Turn Back "+count);
 		}
 	};
