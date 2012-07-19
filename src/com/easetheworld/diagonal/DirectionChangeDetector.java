@@ -29,7 +29,7 @@ public class DirectionChangeDetector {
 		return ret;
 	}
 
-	public static class DirectionGestureListener extends GestureDetector.SimpleOnGestureListener {
+	private static class DirectionGestureListener implements GestureDetector.OnGestureListener {
 	
 		private DirectionChangeListener mTurningBackListener;
 		
@@ -68,14 +68,29 @@ public class DirectionChangeDetector {
 			}
 			return true;
 		}
-		
-		public void onScrollEnd(MotionEvent e) {
-			fireTurningBack(e.getX(), e.getY());
-		}
 
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
 			return true; // consume here so onScrollEnd() will not be called.
+		}
+
+		@Override
+		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+			return false;
+		}
+
+		@Override
+		public void onLongPress(MotionEvent e) {
+			android.util.Log.i("nora", "onLongPress "+e);
+		}
+
+		@Override
+		public void onShowPress(MotionEvent e) {
+			android.util.Log.i("nora", "onShowPress "+e);
+		}
+		
+		public void onScrollEnd(MotionEvent e) {
+			fireTurningBack(e.getX(), e.getY());
 		}
 		
 		private static final int LENGTH_THRESHOLD_FACTOR = 5; // new length * threshold should be bigger than last length
