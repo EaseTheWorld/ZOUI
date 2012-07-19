@@ -49,10 +49,10 @@ public class DirectionChangeDetector {
 		@Override
 		public boolean onDown(MotionEvent ev) {
 			mTurningCount = 0;
-			mLastLength = 0;
+			mLastLength = -1;
 			mStartX = ev.getX();
 			mStartY = ev.getY();
-			fireTurningBack(mStartX, mStartY, true);
+			fireTurningBack(mStartX, mStartY);
 			return true;
 		}
 		
@@ -62,7 +62,7 @@ public class DirectionChangeDetector {
 			float y = e2.getY();
 			float result = cosineSquare(x - mStartX, y - mStartY, -distanceX, -distanceY);
 			if (result < mThresholdCosineSquare) {
-				fireTurningBack(x, y, false);
+				fireTurningBack(x, y);
 				mStartX = x;
 				mStartY = y;
 			}
@@ -70,7 +70,7 @@ public class DirectionChangeDetector {
 		}
 		
 		public void onScrollEnd(MotionEvent e) {
-			fireTurningBack(e.getX(), e.getY(), false);
+			fireTurningBack(e.getX(), e.getY());
 		}
 
 		@Override
@@ -81,15 +81,13 @@ public class DirectionChangeDetector {
 		private static final int LENGTH_THRESHOLD_FACTOR = 5; // new length * threshold should be bigger than last length
 		private double mLastLength;
 		
-		private void fireTurningBack(float x, float y, boolean force) {
+		private void fireTurningBack(float x, float y) {
 			float vx = x - mStartX;
 			float vy = y - mStartY;
 			float length = magnitudeSquare(vx, vy);
-			if (force || (length * LENGTH_THRESHOLD_FACTOR > mLastLength)) { // long enough
+			if (length * LENGTH_THRESHOLD_FACTOR > mLastLength) { // long enough
 				mTurningBackListener.onDirectionChanged(mTurningCount++, Math.toDegrees(Math.atan2(vy, vx)));
 				mLastLength = length;
-			} else {
-				android.util.Log.w("nora", "too short");
 			}
 		}
 
@@ -99,11 +97,6 @@ public class DirectionChangeDetector {
 			if (innerProduct < 0) // keep the sign even though its magnitude is squared.
 				result = -result;
 			return result;
-		}
-		
-		// Math util. Inner product between 2 vectors
-		private static float innerProduct(float v1x, float v1y, float v2x, float v2y) {
-			return v1x * v2x + v1y * v2y;
 		}
 		
 		private static float magnitudeSquare(float vx, float vy) {
