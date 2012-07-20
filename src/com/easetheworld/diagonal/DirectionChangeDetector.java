@@ -13,7 +13,8 @@ public class DirectionChangeDetector {
 	private static final double MINIMUM_ANGLE_DEGREES_DIFFERENCE = 60;
 	
 	public static interface DirectionChangeListener {
-		public void onDirectionChanged(int count, double angleDegrees);
+		public void onDown();
+		public void onDirectionChanged(double angleDegrees);
 	}
 	
 	public DirectionChangeDetector(Context context, DirectionChangeListener listener) {
@@ -35,7 +36,7 @@ public class DirectionChangeDetector {
 		
 		private float mStartX;
 		private float mStartY;
-		private int mTurningCount;
+		
 		private double mThresholdCosineSquare;
 
 		public DirectionGestureListener(DirectionChangeListener listener, double minAngleDegreesDiff) {
@@ -48,11 +49,10 @@ public class DirectionChangeDetector {
 
 		@Override
 		public boolean onDown(MotionEvent ev) {
-			mTurningCount = 0;
 			mLastLength = -1;
 			mStartX = ev.getX();
 			mStartY = ev.getY();
-			fireTurningBack(mStartX, mStartY);
+			mTurningBackListener.onDown();
 			return true;
 		}
 		
@@ -63,8 +63,6 @@ public class DirectionChangeDetector {
 			float result = cosineSquare(x - mStartX, y - mStartY, -distanceX, -distanceY);
 			if (result < mThresholdCosineSquare) {
 				fireTurningBack(x, y);
-				mStartX = x;
-				mStartY = y;
 			}
 			return true;
 		}
@@ -74,21 +72,6 @@ public class DirectionChangeDetector {
 			return true; // consume here so onScrollEnd() will not be called.
 		}
 
-		@Override
-		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			return false;
-		}
-
-		@Override
-		public void onLongPress(MotionEvent e) {
-			android.util.Log.i("nora", "onLongPress "+e);
-		}
-
-		@Override
-		public void onShowPress(MotionEvent e) {
-			android.util.Log.i("nora", "onShowPress "+e);
-		}
-		
 		public void onScrollEnd(MotionEvent e) {
 			fireTurningBack(e.getX(), e.getY());
 		}
@@ -101,9 +84,11 @@ public class DirectionChangeDetector {
 			float vy = y - mStartY;
 			float length = magnitudeSquare(vx, vy);
 			if (length * LENGTH_THRESHOLD_FACTOR > mLastLength) { // long enough
-				mTurningBackListener.onDirectionChanged(mTurningCount++, Math.toDegrees(Math.atan2(vy, vx)));
+				mTurningBackListener.onDirectionChanged(Math.toDegrees(Math.atan2(vy, vx)));
 				mLastLength = length;
 			}
+			mStartX = x;
+			mStartY = y;
 		}
 
 		private static float cosineSquare(float v1x, float v1y, float v2x, float v2y) {
@@ -116,6 +101,25 @@ public class DirectionChangeDetector {
 		
 		private static float magnitudeSquare(float vx, float vy) {
 			return vx * vx + vy * vy;
+		}
+
+		@Override
+		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX,
+				float velocityY) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void onLongPress(MotionEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onShowPress(MotionEvent e) {
+			// TODO Auto-generated method stub
+			
 		}
 	}
 }
