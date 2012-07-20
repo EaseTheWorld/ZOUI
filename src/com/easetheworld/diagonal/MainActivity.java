@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
         
         mGestureDetector = new DirectionChangeDetector(this, mTurningBackListener);
         mStrokeDetector = new StrokeGestureDetector(this, mStrokeListener);
+        updateTextView2();
     }
 	
 	private View mCurrentDragView;
@@ -50,8 +51,8 @@ public class MainActivity extends Activity {
 		}
 	};
 	
-	private int mCount1;
-	private int mCount2;
+	private int mCount1 = 0;
+	private int mCount2 = 0;
 	
 	private DirectionChangeDetector.DirectionChangeListener mTurningBackListener = new DirectionChangeDetector.DirectionChangeListener() {
 		@Override
@@ -95,6 +96,10 @@ public class MainActivity extends Activity {
 	
 	private int mStrokeIncreaseMount = 1;
 	
+	private void updateTextView2() {
+		mTextView2.setText("Stroke("+(mStrokeIncreaseMount > 0 ? "+"+mStrokeIncreaseMount : "" + mStrokeIncreaseMount)+") : "+mCount2);
+	}
+	
 	private StrokeGestureDetector.OnStrokeGestureListener mStrokeListener = new StrokeGestureDetector.OnStrokeGestureListener() {
 		
 		@Override
@@ -102,7 +107,6 @@ public class MainActivity extends Activity {
 			android.util.Log.i("Stroke", "Down");
 			mCount2 = 0;
 			mStrokeIncreaseMount = 1;
-			mTextView2.setText("Stroke : "+mCount2);
 		}
 		
 		@Override
@@ -114,19 +118,20 @@ public class MainActivity extends Activity {
 		@Override
 		public boolean onStrokeStart(MotionEvent e) {
 			android.util.Log.i("Stroke", "Start "+e.getX()+","+e.getY());
+			mCount2 += mStrokeIncreaseMount;
+			updateTextView2();
 			return false;
 		}
 		
 		@Override
-		public boolean onStrokeMove(MotionEvent e1, MotionEvent e2) {
+		public boolean onStrokeMove(MotionEvent e) {
+//			android.util.Log.i("Stroke", "Move "+e.getX()+","+e.getY());
 			return false;
 		}
 		
 		@Override
 		public boolean onStrokeEnd(MotionEvent e1, MotionEvent e2) {
 			android.util.Log.i("Stroke", "End "+e2.getX()+","+e2.getY()+" from "+e1.getX()+","+e1.getY());
-			mCount2 += mStrokeIncreaseMount;
-			mTextView2.setText("Stroke : "+mCount2);
 			return false;
 		}
 		
@@ -141,6 +146,7 @@ public class MainActivity extends Activity {
 		public void onHold() {
 			android.util.Log.i("Stroke", "Hold");
 			mStrokeIncreaseMount = -mStrokeIncreaseMount;
+			updateTextView2();
 		}
 	};
 

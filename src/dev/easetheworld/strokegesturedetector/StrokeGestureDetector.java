@@ -22,7 +22,7 @@ public class StrokeGestureDetector {
         
 		boolean onStrokeStart(MotionEvent e);
 		
-		boolean onStrokeMove(MotionEvent e1, MotionEvent e2);
+		boolean onStrokeMove(MotionEvent e);
         
 		boolean onStrokeEnd(MotionEvent e1, MotionEvent e2);
 		
@@ -51,7 +51,6 @@ public class StrokeGestureDetector {
     private static final int TURN = 0;
     private static final int STROKE = 1;
     private int mState;
-    private int mStrokeCount;
 
     // stroke
     private int mTouchSlopSquare; // min distance for state change from TURN to STROKE
@@ -65,6 +64,10 @@ public class StrokeGestureDetector {
 	private boolean mIsWaitingForHold;
     private static final int HOLD_TIMEOUT = ViewConfiguration.getLongPressTimeout();
     private static final int HOLD_SLOP_DIVISOR = 32; // mTouchSlopSquare / DIVISOR = mHoldSlopSquare;
+    private final Handler mHoldHandler;
+    
+    // single tap
+    private boolean mIsSingleTap;
     
     /**
      * True if we are at a target API level of >= Froyo or the developer can
@@ -104,6 +107,17 @@ public class StrokeGestureDetector {
      */
     public StrokeGestureDetector(Context context, OnStrokeGestureListener listener, boolean ignoreMultitouch) {
         mListener = listener;
+        
+	    mHoldHandler = new Handler() {
+			@Override
+			public void handleMessage(Message msg) {
+				removeHoldMessage();
+				mIsSingleTap = false;
+				mState = TURN;
+				mListener.onHold();
+			}
+	    };
+	    
         init(context, ignoreMultitouch);
     }
 
@@ -111,6 +125,8 @@ public class StrokeGestureDetector {
         if (mListener == null) {
             throw new NullPointerException("OnGestureListener must not be null");
         }
+        
+	    
         setHoldEnabled(true);
         mIgnoreMultitouch = ignoreMultitouch;
 
@@ -180,14 +196,14 @@ public class StrokeGestureDetector {
             mLastMotionX = x;
             mLastMotionY = y;
             
+            mIsSingleTap = true;
             mIsWaitingForHold = false;
-            mStrokeCount = 0;
             mState = TURN;
-            
-//            sendHoldMessage();
             
             mListener.onDown(ev);
             handled = true; // if ACTION_DOWN doesn't return true, ACTION_MOVE will not come.
+            
+            sendHoldMessage();
             break;
 
         case MotionEvent.ACTION_MOVE:
@@ -211,9 +227,10 @@ public class StrokeGestureDetector {
             	}
             	break;
             case STROKE:
+            	handled = mListener.onStrokeMove(ev);
 				final float result = cosineSquare(x - mStrokeStartEvent.getX(), y - mStrokeStartEvent.getY(), distanceX, distanceY);
 				if (result < mThresholdCosineSquare) {
-					handled = dispatchStrokeEnd(mStrokeStartEvent, ev);
+					handled |= dispatchStrokeEnd(mStrokeStartEvent, ev);
 				}
 				if (mIsHoldEnabled) {
 					if (distance > mHoldSlopSquare) {
@@ -229,6 +246,8 @@ public class StrokeGestureDetector {
 	            
 	            mLastMotionX = x;
 	            mLastMotionY = y;
+	            
+	            mIsSingleTap = false;
             	break;
             }
             
@@ -236,17 +255,12 @@ public class StrokeGestureDetector {
 
         case MotionEvent.ACTION_UP:
         	removeHoldMessage();
-        	switch(mState) {
-        	case TURN:
-	            if (mStrokeCount == 0)
-	            	handled = mListener.onSingleTapUp(ev);
-	            else
-					mListener.onUp(ev);
-        		break;
-        	case STROKE:
-				handled = dispatchStrokeEnd(mStrokeStartEvent, ev);
+        	if (mIsSingleTap) {
+            	handled = mListener.onSingleTapUp(ev);
+        	} else {
+        		if (mState == STROKE)
+					handled = dispatchStrokeEnd(mStrokeStartEvent, ev);
 				mListener.onUp(ev);
-        		break;
         	}
             break;
 
@@ -260,34 +274,21 @@ public class StrokeGestureDetector {
 
     private void cancel() {
     	removeHoldMessage();
-        mStrokeCount = 0;
         mState = TURN;
     }
     
-    private Handler mHandler = new Handler() {
-		@Override
-		public void handleMessage(Message msg) {
-			mIsWaitingForHold = false;
-			mState = TURN;
-			mListener.onHold();
-		}
-    };
-    
     private void sendHoldMessage() {
-    	android.util.Log.i("nora", "send hold "+mState);
         mIsWaitingForHold = true;
-		mHandler.sendEmptyMessageDelayed(0, HOLD_TIMEOUT);
+		mHoldHandler.sendEmptyMessageDelayed(0, HOLD_TIMEOUT);
     }
     
     private void removeHoldMessage() {
-    	android.util.Log.i("nora", "remove hold "+mState);
         mIsWaitingForHold = false;
-		mHandler.removeMessages(0);
+		mHoldHandler.removeMessages(0);
     }
 	
 	private boolean dispatchStrokeEnd(MotionEvent e1, MotionEvent e2) {
 		mState = TURN;
-		mStrokeCount++;
 		return mListener.onStrokeEnd(e1, e2);
 	}
 	
