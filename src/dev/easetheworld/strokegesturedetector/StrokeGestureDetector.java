@@ -39,23 +39,31 @@ public class StrokeGestureDetector {
          */
         boolean onSingleTapUp(MotionEvent e);
     }
-	
-
-    private final OnStrokeGestureListener mListener;
-
-    // remember last move position
-    private float mLastMotionY;
-    private float mLastMotionX;
     
+    public static interface OnRotationGestureListener {
+    	boolean onRotateStart(MotionEvent ev);
+    	
+    	boolean onRotateMove(MotionEvent ev, int diff);
+    	
+    	boolean onRotateEnd(MotionEvent ev);
+    }
+
     // state
     private static final int TURN = 0;
     private static final int STROKE = 1;
+    
+    private static final int ROTATE_CENTER = 2;
+    private static final int ROTATE = 3;
     private int mState;
+    
+    private float mLastMotionY;
+    private float mLastMotionX;
 
     // stroke
+    private final OnStrokeGestureListener mListener;
     private int mTouchSlopSquare; // min distance for state change from TURN to STROKE
     private MotionEvent mStrokeStartEvent;
-    private static final int MIN_ANGLE_DIFF_BETWEEN_STROKES = 60; // degrees
+    private static final double MIN_ANGLE_DIFF_BETWEEN_STROKES = Math.toRadians(60);
 	private double mThresholdCosineSquare;
 	
 	// hold
@@ -68,6 +76,15 @@ public class StrokeGestureDetector {
     
     // single tap
     private boolean mIsSingleTap;
+    
+    // rotation
+    private OnRotationGestureListener mRotationListener;
+    private float mCenterX;
+    private float mCenterY;
+    private int mRotatePrevValue;
+    private int mRotateResolution;
+    private int mRotateResolutionHalf;
+    private double mRotateScaleFactor;
     
     /**
      * True if we are at a target API level of >= Froyo or the developer can
@@ -118,6 +135,9 @@ public class StrokeGestureDetector {
 			}
 	    };
 	    
+	    if (listener instanceof OnRotationGestureListener)
+	    	setOnRotationListener((OnRotationGestureListener) listener);
+	    
         init(context, ignoreMultitouch);
     }
 
@@ -125,7 +145,6 @@ public class StrokeGestureDetector {
         if (mListener == null) {
             throw new NullPointerException("OnGestureListener must not be null");
         }
-        
 	    
         setHoldEnabled(true);
         mIgnoreMultitouch = ignoreMultitouch;
@@ -136,9 +155,30 @@ public class StrokeGestureDetector {
         
 		mHoldSlopSquare = mTouchSlopSquare / HOLD_SLOP_DIVISOR;
         
-		double cosine = Math.cos(Math.toRadians(MIN_ANGLE_DIFF_BETWEEN_STROKES));
+		double cosine = Math.cos(MIN_ANGLE_DIFF_BETWEEN_STROKES);
 		mThresholdCosineSquare = cosine * cosine;
-		
+    }
+    
+    // change gesture mode
+    
+    public void stroke() {
+    	mState = TURN;
+    }
+    
+    public void rotate(int resolution) {
+    	removeHoldMessage();
+    	
+    	if (mRotationListener == null)
+            throw new NullPointerException("OnRotationGestureListener must not be null");
+    	
+    	mRotateResolution = resolution;
+    	mRotateResolutionHalf = resolution / 2;
+    	mRotateScaleFactor = (double)resolution / (Math.PI * 2);
+    	mState = ROTATE_CENTER;
+    }
+    
+    public void setOnRotationListener(OnRotationGestureListener listener) {
+    	mRotationListener = listener;
     }
 
     /**
@@ -199,11 +239,11 @@ public class StrokeGestureDetector {
             mIsSingleTap = true;
             mIsWaitingForHold = false;
             mState = TURN;
+            sendHoldMessage();
             
             mListener.onDown(ev);
             handled = true; // if ACTION_DOWN doesn't return true, ACTION_MOVE will not come.
             
-            sendHoldMessage();
             break;
 
         case MotionEvent.ACTION_MOVE:
@@ -215,7 +255,7 @@ public class StrokeGestureDetector {
             final float distanceY = y - mLastMotionY;
             final float distance = distanceX * distanceX + distanceY * distanceY;
             
-//            android.util.Log.i("nora", "state="+mState+", cur="+x+","+y+", distance="+distance+"/"+mTouchSlopSquare+","+mHoldSlopSquare);
+            android.util.Log.i("nora", "state="+mState+", cur="+x+","+y+", distance="+distance+"/"+mTouchSlopSquare+","+mHoldSlopSquare);
             switch(mState) {
             case TURN:
             	if (distance > mTouchSlopSquare) {
@@ -226,11 +266,13 @@ public class StrokeGestureDetector {
             		handled = mListener.onStrokeStart(mStrokeStartEvent);
             	}
             	break;
+            	
             case STROKE:
             	handled = mListener.onStrokeMove(ev);
 				final float result = cosineSquare(x - mStrokeStartEvent.getX(), y - mStrokeStartEvent.getY(), distanceX, distanceY);
 				if (result < mThresholdCosineSquare) {
-					handled |= dispatchStrokeEnd(mStrokeStartEvent, ev);
+					mState = TURN;
+					handled |= mListener.onStrokeEnd(mStrokeStartEvent, ev);
 				}
 				if (mIsHoldEnabled) {
 					if (distance > mHoldSlopSquare) {
@@ -249,6 +291,27 @@ public class StrokeGestureDetector {
 	            
 	            mIsSingleTap = false;
             	break;
+            	
+            case ROTATE_CENTER:
+		    	mCenterX = x;
+		    	mCenterY = y;
+        		mRotatePrevValue = (int)(Math.atan2(y - mCenterY, x - mCenterX) * mRotateScaleFactor);
+        		mRotationListener.onRotateStart(ev);
+        		mState = ROTATE;
+            	break;
+            	
+            case ROTATE:
+    			int value = (int)(Math.atan2(y - mCenterY, x - mCenterX) * mRotateScaleFactor);
+    			if (value != mRotatePrevValue) {
+    				int diff = value - mRotatePrevValue;
+    				if (diff < -mRotateResolutionHalf)
+    					diff += mRotateResolution;
+    				else if (diff > mRotateResolutionHalf)
+        				diff -= mRotateResolution;
+        			handled = mRotationListener.onRotateMove(ev, diff);
+    			}
+    			mRotatePrevValue = value;
+            	break;
             }
             
             break;
@@ -259,7 +322,9 @@ public class StrokeGestureDetector {
             	handled = mListener.onSingleTapUp(ev);
         	} else {
         		if (mState == STROKE)
-					handled = dispatchStrokeEnd(mStrokeStartEvent, ev);
+					handled = mListener.onStrokeEnd(mStrokeStartEvent, ev);
+        		else if (mState == ROTATE)
+					handled = mRotationListener.onRotateEnd(ev);
 				mListener.onUp(ev);
         	}
             break;
@@ -274,7 +339,6 @@ public class StrokeGestureDetector {
 
     private void cancel() {
     	removeHoldMessage();
-        mState = TURN;
     }
     
     private void sendHoldMessage() {
@@ -287,11 +351,6 @@ public class StrokeGestureDetector {
 		mHoldHandler.removeMessages(0);
     }
 	
-	private boolean dispatchStrokeEnd(MotionEvent e1, MotionEvent e2) {
-		mState = TURN;
-		return mListener.onStrokeEnd(e1, e2);
-	}
-	
     private static float cosineSquare(float v1x, float v1y, float v2x, float v2y) {
     	float innerProduct = v1x * v2x + v1y * v2y;
     	float result = (innerProduct * innerProduct) / (magnitudeSquare(v1x, v1y) * magnitudeSquare(v2x, v2y));
@@ -302,5 +361,69 @@ public class StrokeGestureDetector {
 
     private static float magnitudeSquare(float vx, float vy) {
     	return vx * vx + vy * vy;
+    }
+    
+    public static class BaseGestureDetector implements OnStrokeGestureListener, OnRotationGestureListener {
+
+
+		@Override
+		public void onDown(MotionEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public boolean onStrokeStart(MotionEvent e) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean onStrokeMove(MotionEvent e) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean onStrokeEnd(MotionEvent e1, MotionEvent e2) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public void onHold() {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onUp(MotionEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public boolean onSingleTapUp(MotionEvent e) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean onRotateStart(MotionEvent ev) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean onRotateMove(MotionEvent ev, int diff) {
+			// TODO Auto-generated method stub
+			return false;
+		}
+
+		@Override
+		public boolean onRotateEnd(MotionEvent ev) {
+			// TODO Auto-generated method stub
+			return false;
+		}
     }
 }

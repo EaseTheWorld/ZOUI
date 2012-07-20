@@ -100,12 +100,11 @@ public class MainActivity extends Activity {
 		mTextView2.setText("Stroke("+(mStrokeIncreaseMount > 0 ? "+"+mStrokeIncreaseMount : "" + mStrokeIncreaseMount)+") : "+mCount2);
 	}
 	
-	private StrokeGestureDetector.OnStrokeGestureListener mStrokeListener = new StrokeGestureDetector.OnStrokeGestureListener() {
+	private StrokeGestureDetector.BaseGestureDetector mStrokeListener = new StrokeGestureDetector.BaseGestureDetector() {
 		
 		@Override
 		public void onDown(MotionEvent e) {
 			android.util.Log.i("Stroke", "Down");
-			mCount2 = 0;
 			mStrokeIncreaseMount = 1;
 		}
 		
@@ -146,7 +145,34 @@ public class MainActivity extends Activity {
 		public void onHold() {
 			android.util.Log.i("Stroke", "Hold");
 			mStrokeIncreaseMount = -mStrokeIncreaseMount;
+			if (mStrokeIncreaseMount > 0) {
+				mStrokeDetector.stroke();
+			} else {
+				mStrokeDetector.rotate(12);
+			}
 			updateTextView2();
+		}
+		
+		@Override
+		public boolean onRotateStart(MotionEvent ev) {
+			android.util.Log.i("Rotate", "Start "+ev);
+			// TODO Auto-generated method stub
+			return super.onRotateStart(ev);
+		}
+
+		@Override
+		public boolean onRotateMove(MotionEvent ev, int diff) {
+			// TODO Auto-generated method stub
+			android.util.Log.i("Rotate", "Move "+ev+", diff="+diff);
+			mCount2 += diff;
+			updateTextView2();
+			return super.onRotateMove(ev, diff);
+		}
+
+		@Override
+		public boolean onRotateEnd(MotionEvent ev) {
+			android.util.Log.i("Rotate", "End "+ev);
+			return super.onRotateEnd(ev);
 		}
 	};
 
