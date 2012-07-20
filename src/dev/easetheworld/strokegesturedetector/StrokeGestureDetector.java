@@ -43,7 +43,7 @@ public class StrokeGestureDetector {
     public static interface OnRotationGestureListener {
     	boolean onRotateStart(MotionEvent ev);
     	
-    	boolean onRotateMove(MotionEvent ev, int diff);
+    	boolean onRotateMove(MotionEvent ev, double angleRadian, int diff);
     	
     	boolean onRotateEnd(MotionEvent ev);
     }
@@ -301,15 +301,16 @@ public class StrokeGestureDetector {
             	break;
             	
             case ROTATE:
-    			int value = (int)(Math.atan2(y - mCenterY, x - mCenterX) * mRotateScaleFactor);
-    			if (value != mRotatePrevValue) {
+            	double angle = Math.atan2(y - mCenterY, x - mCenterX);
+    			int value = (int)(angle * mRotateScaleFactor);
+//    			if (value != mRotatePrevValue) { // for smooth ui animation
     				int diff = value - mRotatePrevValue;
     				if (diff < -mRotateResolutionHalf)
     					diff += mRotateResolution;
     				else if (diff > mRotateResolutionHalf)
         				diff -= mRotateResolution;
-        			handled = mRotationListener.onRotateMove(ev, diff);
-    			}
+        			handled = mRotationListener.onRotateMove(ev, angle, diff);
+//    			}
     			mRotatePrevValue = value;
             	break;
             }
@@ -415,7 +416,7 @@ public class StrokeGestureDetector {
 		}
 
 		@Override
-		public boolean onRotateMove(MotionEvent ev, int diff) {
+		public boolean onRotateMove(MotionEvent ev, double angleRadian, int diff) {
 			// TODO Auto-generated method stub
 			return false;
 		}
