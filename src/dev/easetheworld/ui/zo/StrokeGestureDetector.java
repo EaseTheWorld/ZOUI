@@ -1,4 +1,4 @@
-package dev.easetheworld.strokegesturedetector;
+package dev.easetheworld.ui.zo;
 
 import android.content.Context;
 import android.os.Build;

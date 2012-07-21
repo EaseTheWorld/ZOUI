@@ -10,7 +10,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-import dev.easetheworld.strokegesturedetector.StrokeGestureDetector;
+import dev.easetheworld.ui.zo.StrokeGestureDetector;
 
 public class MainActivity extends Activity {
 
