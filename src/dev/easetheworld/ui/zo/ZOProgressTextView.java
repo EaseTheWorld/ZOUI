@@ -43,7 +43,7 @@ public class ZOProgressTextView extends TextView {
 			return super.onTouchEvent(event);
 	}
 	
-	private StrokeGestureDetector.BaseGestureDetector mStrokeListener = new StrokeGestureDetector.BaseGestureDetector() {
+	private StrokeGestureDetector.OnStrokeGestureListener mStrokeListener = new StrokeGestureDetector.OnStrokeGestureListener() {
 		
 		@Override
 		public void onDown(MotionEvent e) {

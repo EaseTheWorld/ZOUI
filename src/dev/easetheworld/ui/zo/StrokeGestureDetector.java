@@ -44,7 +44,6 @@ public class StrokeGestureDetector {
     private static final int STROKE_TURN = 0;
     private static final int STROKE = 1;
     private static final int FIRST_STATE = STROKE_TURN;
-    
     private int mState;
     
     // gesture listener
@@ -74,7 +73,7 @@ public class StrokeGestureDetector {
 
     // stroke
     private MotionEvent mStrokeStartEvent;
-    private static final double MIN_ANGLE_DIFF_BETWEEN_STROKES = Math.toRadians(60);
+    private static final double MIN_ANGLE_DIFF_BETWEEN_STROKES = Math.toRadians(90);
 	private double mThresholdCosineSquare;
     
     /**
@@ -119,6 +118,7 @@ public class StrokeGestureDetector {
 	    mHoldHandler = new Handler() {
 			@Override
 			public void handleMessage(Message msg) {
+				android.util.Log.e("nora", "HHHHHHHHHHHHold");
 				removeHoldMessage();
 				mIsSingleTap = false;
 				mState = FIRST_STATE;
@@ -145,6 +145,7 @@ public class StrokeGestureDetector {
         
 		double cosine = Math.cos(MIN_ANGLE_DIFF_BETWEEN_STROKES);
 		mThresholdCosineSquare = cosine * cosine;
+		android.util.Log.i("nora", "BigSlop="+mBigSlopSquare+", SmallSlop="+mSmallSlopSquare+", cosSqr="+mThresholdCosineSquare);
     }
 
     /**
@@ -227,7 +228,7 @@ public class StrokeGestureDetector {
             final float distanceY = y - mLastMotionY;
             final float distance = magnitudeSquare(distanceX, distanceY);
             
-//            android.util.Log.i("nora", "state="+mState+", distance="+distance+"("+distanceX+","+distanceY+")");
+            android.util.Log.i("nora", "state="+mState+", distance="+distance+"("+distanceX+","+distanceY+")");
             switch(mState) {
             case STROKE_TURN:
             	if (distance > mBigSlopSquare) {
@@ -245,7 +246,8 @@ public class StrokeGestureDetector {
             case STROKE:
 	            if (distance > mSmallSlopSquare) {
 					final float result = cosineSquare(distanceX, distanceY, mLastDistanceX, mLastDistanceY);
-		            if (result < 0) {
+		            android.util.Log.i("nora", "    result="+result);
+		            if (result < mThresholdCosineSquare) {
 						mState = STROKE_TURN;
 						handled = mListener.onStrokeEnd(mStrokeStartEvent, ev);
 		            } else {
@@ -263,6 +265,7 @@ public class StrokeGestureDetector {
 					if (distance > mSmallSlopSquare) {
 						if (mIsWaitingForHold) {
 							removeHoldMessage();
+							sendHoldMessage();
 						}
 					} else {
 						if (!mIsWaitingForHold) {
@@ -303,11 +306,13 @@ public class StrokeGestureDetector {
     }
     
     private void sendHoldMessage() {
+    	android.util.Log.e("nora", "send hold");
         mIsWaitingForHold = true;
 		mHoldHandler.sendEmptyMessageDelayed(0, HOLD_TIMEOUT);
     }
     
     private void removeHoldMessage() {
+    	android.util.Log.e("nora", "remove hold");
         mIsWaitingForHold = false;
 		mHoldHandler.removeMessages(0);
     }
@@ -322,51 +327,5 @@ public class StrokeGestureDetector {
 
     private static float magnitudeSquare(float vx, float vy) {
     	return vx * vx + vy * vy;
-    }
-    
-    public static class BaseGestureDetector implements OnStrokeGestureListener {
-
-
-		@Override
-		public void onDown(MotionEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public boolean onStrokeStart(MotionEvent e) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public boolean onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-		
-		@Override
-		public boolean onStrokeEnd(MotionEvent e1, MotionEvent e2) {
-			// TODO Auto-generated method stub
-			return false;
-		}
-
-		@Override
-		public void onHold() {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public void onUp(MotionEvent e) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		public boolean onSingleTapUp(MotionEvent e) {
-			// TODO Auto-generated method stub
-			return false;
-		}
     }
 }
