@@ -38,7 +38,6 @@ public class MainActivity extends Activity {
         mOverlayPopup = new PopupWindow(mOverlay);
         
         mStrokeDetector = new StrokeGestureDetector(this, mStrokeListener);
-        updateTextView();
         updateMode();
     }
 	
@@ -55,14 +54,28 @@ public class MainActivity extends Activity {
 	
 	private int mCount = 0;
 	
-	private int mStrokeIncreaseMount = 1;
+	private int mStrokeIncreaseMount;
+	private int mStrokeSensitivityFactor;
+	private int mStrokeSensitivity = 1;
 	
 	private void updateTextView() {
-		mTextView1.setText("Stroke("+(mStrokeIncreaseMount > 0 ? "+"+mStrokeIncreaseMount : "" + mStrokeIncreaseMount)+") : "+mCount);
+		if (++mStrokeSensitivityFactor >= mStrokeSensitivity)
+			mStrokeSensitivityFactor = 0;
+		if (mStrokeSensitivityFactor == 0) {
+			mCount += mStrokeIncreaseMount;
+			mTextView1.setText("Count : "+mCount);
+		}
 	}
 	
 	private void updateMode() {
-    	mTextViewMode.setText("Mode="+mMode);
+		switch(mMode) {
+		case MODE_STROKE_START_INC_HOLD:
+	    	mTextViewMode.setText("Mode Z : Zigzag and Hold");
+			break;
+		case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+	    	mTextViewMode.setText("Mode O : Circle and Reverse");
+			break;
+		}
 	}
 	
 	private StrokeGestureDetector.BaseGestureDetector mStrokeListener = new StrokeGestureDetector.BaseGestureDetector() {
@@ -70,13 +83,14 @@ public class MainActivity extends Activity {
 		@Override
 		public void onDown(MotionEvent e) {
 			android.util.Log.i("Stroke", "Down");
-			mStrokeIncreaseMount = 1;
+			setStrokeIncreaseMount(1);
 		}
 		
 		@Override
 		public void onUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "Up");
 			mTextView1.setText("Stroke : "+mCount+ " Done.");
+	    	dismissPopupOnScreen();
 		}
 		
 		@Override
@@ -84,7 +98,6 @@ public class MainActivity extends Activity {
 			android.util.Log.i("Stroke", "Start "+e.getX()+","+e.getY());
 			switch(mMode) {
 			case MODE_STROKE_START_INC_HOLD:
-				mCount += mStrokeIncreaseMount;
 				updateTextView();
 				break;
 			}
@@ -94,6 +107,7 @@ public class MainActivity extends Activity {
 		@Override
 		public boolean onStrokeMove(MotionEvent e, float distanceX, float distanceY) {
 //			android.util.Log.i("Stroke", "Move "+distance);
+	    	showPopupOnScreen(mTextView1, e);
 			return false;
 		}
 		
@@ -109,10 +123,10 @@ public class MainActivity extends Activity {
 		public boolean onCurveSmooth(MotionEvent e, float distanceX, float distanceY, float cosineSquare) {
 	    	switch(mMode) {
 	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
-				mCount += mStrokeIncreaseMount;
 				updateTextView();
 	    		break;
 	    	}
+	    	showPopupOnScreen(mTextView1, e);
 			return super.onCurveSmooth(e, distanceX, distanceY, cosineSquare);
 		}
 
@@ -121,8 +135,7 @@ public class MainActivity extends Activity {
 			android.util.Log.i("Curve", "Broken "+e+" "+(distanceX*distanceX+distanceY*distanceY)+", cos="+cosineSquare);
 	    	switch(mMode) {
 	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
-				mStrokeIncreaseMount = -mStrokeIncreaseMount;
-				updateTextView();
+				setStrokeIncreaseMount(-mStrokeIncreaseMount);
 	    		break;
 	    	}
 			return super.onCurveBroken(e, distanceX, distanceY, cosineSquare);
@@ -136,12 +149,13 @@ public class MainActivity extends Activity {
 	    	switch(mMode) {
 	    	case MODE_STROKE_START_INC_HOLD:
 	    		mStrokeDetector.stroke();
+	    		mStrokeSensitivity = 1;
 	    		break;
 	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
 	    		mStrokeDetector.curve();
+	    		mStrokeSensitivity = 3;
 	    		break;
 	    	}
-	    	updateTextView();
 	    	updateMode();
 			return false;
 		}
@@ -151,12 +165,23 @@ public class MainActivity extends Activity {
 			android.util.Log.i("Stroke", "Hold");
 			switch(mMode) {
 			case MODE_STROKE_START_INC_HOLD:
-				mStrokeIncreaseMount = -mStrokeIncreaseMount;
-				updateTextView();
+				setStrokeIncreaseMount(-mStrokeIncreaseMount);
+				break;
+			case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+//				setStrokeIncreaseMount(-mStrokeIncreaseMount); // curve will 
 				break;
 			}
 		}
 	};
+	
+	private void setStrokeIncreaseMount(int value) {
+		if (value > 0)
+			mOverlay.setImageResource(android.R.drawable.btn_plus);
+		else
+			mOverlay.setImageResource(android.R.drawable.btn_minus);
+		mStrokeIncreaseMount = value;
+		mStrokeSensitivityFactor = 0;
+	}
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -165,12 +190,16 @@ public class MainActivity extends Activity {
     }
     
     private void showPopupOnScreen(View v, MotionEvent ev) {
-    	v.getLocationOnScreen(mTempXY);
-    	int popupWidth = mOverlay.getDrawable().getIntrinsicWidth() * 4;
-    	int popupHeight = mOverlay.getDrawable().getIntrinsicHeight() * 4;
-    	mOverlayPopup.setWidth(popupWidth);
-    	mOverlayPopup.setHeight(popupHeight);
-    	mOverlayPopup.showAtLocation(v, Gravity.NO_GRAVITY, mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2);
+		int popupWidth = mOverlay.getDrawable().getIntrinsicWidth() * 2;
+		int popupHeight = mOverlay.getDrawable().getIntrinsicHeight() * 2;
+    	if (mOverlayPopup.isShowing()) {
+    		mOverlayPopup.update(mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2, -1, -1);
+    	} else {
+    		v.getLocationOnScreen(mTempXY);
+    		mOverlayPopup.setWidth(popupWidth);
+    		mOverlayPopup.setHeight(popupHeight);
+    		mOverlayPopup.showAtLocation(v, Gravity.NO_GRAVITY, mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2);
+    	}
     }
     
     private void dismissPopupOnScreen() {

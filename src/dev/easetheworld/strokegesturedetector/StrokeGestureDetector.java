@@ -48,8 +48,7 @@ public class StrokeGestureDetector {
     private static final int STROKE_TURN = 0;
     private static final int STROKE = 1;
     
-    private static final int CURVE_SMOOTH = 2;
-    private static final int CURVE_BROKEN = 3;
+    private static final int CURVE = 2;
     private int mCurrentState;
     private int mInitialState;
     
@@ -161,7 +160,7 @@ public class StrokeGestureDetector {
     }
     
     public void curve() {
-    	mInitialState = CURVE_SMOOTH;
+    	mInitialState = CURVE;
     }
 
     /**
@@ -223,7 +222,7 @@ public class StrokeGestureDetector {
 	            if (mIsHoldEnabled)
 		            sendHoldMessage();
         		break;
-        	case CURVE_SMOOTH:
+        	case CURVE:
 	            mLastDistanceX = 0;
 	            mLastDistanceY = 0;
         		break;
@@ -285,7 +284,7 @@ public class StrokeGestureDetector {
 	            mIsSingleTap = false;
             	break;
             	
-            case CURVE_SMOOTH:
+            case CURVE:
 //	        	android.util.Log.i("nora", "posistion now="+distance+", "+mBigSlopSquare+"/"+mSmallSlopSquare);
 	            if (distance > mSmallSlopSquare) {
 					final float result2 = cosineSquare(distanceX, distanceY, mLastDistanceX, mLastDistanceY);
@@ -303,17 +302,6 @@ public class StrokeGestureDetector {
 	            
 		            mLastMotionX = x;
 		            mLastMotionY = y;
-				}
-				if (mIsHoldEnabled) {
-					if (distance > mSmallSlopSquare) {
-						if (mIsWaitingForHold) {
-							removeHoldMessage();
-						}
-					} else {
-						if (!mIsWaitingForHold) {
-							sendHoldMessage();
-						}
-					}
 				}
 				mIsSingleTap = false;
             	break;
