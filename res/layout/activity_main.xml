@@ -4,37 +4,22 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
-
+    
       <TextView
           android:id="@android:id/text1"
-          android:layout_width="wrap_content"
+          android:layout_width="match_parent"
           android:layout_height="wrap_content"
-          android:padding="@dimen/padding_medium"
-          android:text="@string/hello_world" />
+          android:layout_marginTop="80dip"
+          android:gravity="center"
+          android:textSize="24sp"
+          android:drawableLeft="@android:drawable/ic_menu_compass"
+          android:background="#daf"
+          android:text="Drag me." />
+
       <TextView
           android:id="@android:id/text2"
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
-          android:padding="@dimen/padding_medium"
-          android:text="@string/hello_world" />
-
-    <Button
-        android:id="@android:id/button1"
-        android:layout_width="match_parent"
-        android:layout_height="50dip"
-        android:onClick="clickHandler"
-        android:text="Button" />
-
-    <ImageView
-        android:id="@android:id/icon1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@android:drawable/btn_minus" />
-        
-    <ImageView
-        android:id="@android:id/icon2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@android:drawable/btn_plus" />
+          android:text="Mode" />
 
 </LinearLayout>

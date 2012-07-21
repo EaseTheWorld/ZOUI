@@ -7,116 +7,63 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
-import android.widget.Toast;
 import dev.easetheworld.strokegesturedetector.StrokeGestureDetector;
 
 public class MainActivity extends Activity {
 
-	private View mLayout;
-    private DirectionChangeDetector mGestureDetector;
     private StrokeGestureDetector mStrokeDetector;
     private TextView mTextView1;
-    private TextView mTextView2;
-    private ImageView mImageView1;
-    private ImageView mImageView2;
+    private TextView mTextViewMode;
     private PopupWindow mOverlayPopup;
     private ImageView mOverlay;
+    
+    private static final int MODE_STROKE_START_INC_HOLD = 0;
+    private static final int MODE_CURVE_SMOOTH_MOVE_INC_BROKEN = 1;
+    private static final int MODE_COUNT = 2;
+    private int mMode = MODE_STROKE_START_INC_HOLD;
     
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mLayout = findViewById(R.id.LinearLayout1);
         mTextView1 = (TextView)findViewById(android.R.id.text1);
-        mTextView2 = (TextView)findViewById(android.R.id.text2);
-        mImageView1 = (ImageView)findViewById(android.R.id.icon1);
-        mImageView2 = (ImageView)findViewById(android.R.id.icon2);
-        mImageView1.setOnTouchListener(mDragListener);
-        mImageView2.setOnTouchListener(mDragListener);
+        mTextView1.setOnTouchListener(mDragListener);
+        
+        mTextViewMode = (TextView)findViewById(android.R.id.text2);
         
         mOverlay= (ImageView) LayoutInflater.from(this).inflate(R.layout.gesture_overlay, null);
         mOverlayPopup = new PopupWindow(mOverlay);
         
-        mGestureDetector = new DirectionChangeDetector(this, mTurningBackListener);
         mStrokeDetector = new StrokeGestureDetector(this, mStrokeListener);
-        updateTextView2();
+        updateTextView();
+        updateMode();
     }
-	
-	private View mCurrentDragView;
 	
 	private View.OnTouchListener mDragListener = new View.OnTouchListener() {
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			mCurrentDragView = v;
-			switch(v.getId()) {
-			case android.R.id.icon1:
-				if (mGestureDetector.onTouchEvent(event))
-					return true;
-				break;
-			case android.R.id.icon2:
-				if (mStrokeDetector.onTouchEvent(event))
-					return true;
-				break;
-			}
-			return false;
+			if (mStrokeDetector.onTouchEvent(event))
+				return true;
+			else
+				return false;
 		}
 	};
 	
-	private int mCount1 = 0;
-	private int mCount2 = 0;
-	
-	private DirectionChangeDetector.DirectionChangeListener mTurningBackListener = new DirectionChangeDetector.DirectionChangeListener() {
-		@Override
-		public void onDirectionChanged(double angleDegrees) {
-			int count = 0;
-			TextView tv = null;
-			switch(mCurrentDragView.getId()) {
-			case android.R.id.icon1:
-				mCount1++;
-				count = mCount1;
-				tv = mTextView1;
-				break;
-			case android.R.id.icon2:
-				mCount2++;
-				count = mCount2;
-				tv = mTextView2;
-				break;
-			}
-			tv.setText("Turn Back : "+count);
-		}
-
-		@Override
-		public void onDown() {
-			int count = 0;
-			TextView tv = null;
-			switch(mCurrentDragView.getId()) {
-			case android.R.id.icon1:
-				mCount1 = 0;
-				count = mCount1;
-				tv = mTextView1;
-				break;
-			case android.R.id.icon2:
-				mCount2 = 0;
-				count = mCount2;
-				tv = mTextView2;
-				break;
-			}
-			tv.setText("Turn Back : "+count);
-		}
-	};
+	private int mCount = 0;
 	
 	private int mStrokeIncreaseMount = 1;
 	
-	private void updateTextView2() {
-		mTextView2.setText("Stroke("+(mStrokeIncreaseMount > 0 ? "+"+mStrokeIncreaseMount : "" + mStrokeIncreaseMount)+") : "+mCount2);
+	private void updateTextView() {
+		mTextView1.setText("Stroke("+(mStrokeIncreaseMount > 0 ? "+"+mStrokeIncreaseMount : "" + mStrokeIncreaseMount)+") : "+mCount);
 	}
 	
-	private static final int ROTATE_RESOLUTION = 12;
+	private void updateMode() {
+    	mTextViewMode.setText("Mode="+mMode);
+	}
 	
 	private StrokeGestureDetector.BaseGestureDetector mStrokeListener = new StrokeGestureDetector.BaseGestureDetector() {
 		
@@ -129,20 +76,24 @@ public class MainActivity extends Activity {
 		@Override
 		public void onUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "Up");
-			mTextView2.setText("Stroke : "+mCount2+ " Done.");
+			mTextView1.setText("Stroke : "+mCount+ " Done.");
 		}
 		
 		@Override
 		public boolean onStrokeStart(MotionEvent e) {
 			android.util.Log.i("Stroke", "Start "+e.getX()+","+e.getY());
-			mCount2 += mStrokeIncreaseMount;
-			updateTextView2();
+			switch(mMode) {
+			case MODE_STROKE_START_INC_HOLD:
+				mCount += mStrokeIncreaseMount;
+				updateTextView();
+				break;
+			}
 			return false;
 		}
 		
 		@Override
-		public boolean onStrokeMove(MotionEvent e) {
-//			android.util.Log.i("Stroke", "Move "+e.getX()+","+e.getY());
+		public boolean onStrokeMove(MotionEvent e, float distanceX, float distanceY) {
+//			android.util.Log.i("Stroke", "Move "+distance);
 			return false;
 		}
 		
@@ -152,52 +103,58 @@ public class MainActivity extends Activity {
 			return false;
 		}
 		
+		
+		
+		@Override
+		public boolean onCurveSmooth(MotionEvent e, float distanceX, float distanceY, float cosineSquare) {
+	    	switch(mMode) {
+	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+				mCount += mStrokeIncreaseMount;
+				updateTextView();
+	    		break;
+	    	}
+			return super.onCurveSmooth(e, distanceX, distanceY, cosineSquare);
+		}
+
+		@Override
+		public boolean onCurveBroken(MotionEvent e, float distanceX, float distanceY, float cosineSquare) {
+			android.util.Log.i("Curve", "Broken "+e+" "+(distanceX*distanceX+distanceY*distanceY)+", cos="+cosineSquare);
+	    	switch(mMode) {
+	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+				mStrokeIncreaseMount = -mStrokeIncreaseMount;
+				updateTextView();
+	    		break;
+	    	}
+			return super.onCurveBroken(e, distanceX, distanceY, cosineSquare);
+		}
+
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "SingleTapUp "+e);
-	    	Toast.makeText(MainActivity.this, "SingleTapUp "+e, Toast.LENGTH_SHORT).show();
-			dumpViewLocation(mLayout);
-			dumpViewLocation(mTextView1);
-			dumpViewLocation(mTextView2);
+			mCount = 0;
+	    	mMode = (mMode + 1) % MODE_COUNT;
+	    	switch(mMode) {
+	    	case MODE_STROKE_START_INC_HOLD:
+	    		mStrokeDetector.stroke();
+	    		break;
+	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+	    		mStrokeDetector.curve();
+	    		break;
+	    	}
+	    	updateTextView();
+	    	updateMode();
 			return false;
 		}
 		
 		@Override
 		public void onHold() {
 			android.util.Log.i("Stroke", "Hold");
-			mStrokeIncreaseMount = -mStrokeIncreaseMount;
-			if (mStrokeIncreaseMount > 0) {
-				mStrokeDetector.stroke();
-			} else {
-				mStrokeDetector.rotate(ROTATE_RESOLUTION);
+			switch(mMode) {
+			case MODE_STROKE_START_INC_HOLD:
+				mStrokeIncreaseMount = -mStrokeIncreaseMount;
+				updateTextView();
+				break;
 			}
-			updateTextView2();
-		}
-		
-		@Override
-		public boolean onRotateStart(MotionEvent ev) {
-			android.util.Log.i("Rotate", "Start "+ev);
-			showPopupOnScreen(mImageView2, ev);
-			return super.onRotateStart(ev);
-		}
-
-		@Override
-		public boolean onRotateMove(MotionEvent ev, double angleRadian, int diff) {
-			// TODO Auto-generated method stub
-			android.util.Log.i("Rotate", "Move "+ev+", diff="+diff);
-			mCount2 += diff;
-			updateTextView2();
-			
-			angleRadian += Math.PI;
-			mOverlay.getDrawable().setLevel((int)(angleRadian * 5000 / Math.PI));
-			return super.onRotateMove(ev, angleRadian, diff);
-		}
-
-		@Override
-		public boolean onRotateEnd(MotionEvent ev) {
-			android.util.Log.i("Rotate", "End "+ev);
-			dismissPopupOnScreen();
-			return super.onRotateEnd(ev);
 		}
 	};
 
@@ -207,14 +164,10 @@ public class MainActivity extends Activity {
         return true;
     }
     
-    public void clickHandler(View v) {
-    	Toast.makeText(this, "Button Clicked", Toast.LENGTH_SHORT).show();
-    }
-    
     private void showPopupOnScreen(View v, MotionEvent ev) {
     	v.getLocationOnScreen(mTempXY);
-    	int popupWidth = mOverlay.getDrawable().getIntrinsicWidth();
-    	int popupHeight = mOverlay.getDrawable().getIntrinsicHeight();
+    	int popupWidth = mOverlay.getDrawable().getIntrinsicWidth() * 4;
+    	int popupHeight = mOverlay.getDrawable().getIntrinsicHeight() * 4;
     	mOverlayPopup.setWidth(popupWidth);
     	mOverlayPopup.setHeight(popupHeight);
     	mOverlayPopup.showAtLocation(v, Gravity.NO_GRAVITY, mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2);
