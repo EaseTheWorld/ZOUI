@@ -23,7 +23,7 @@ public class MainActivity extends Activity {
     private static final int MODE_STROKE_START_INC_HOLD = 0;
     private static final int MODE_CURVE_SMOOTH_MOVE_INC_BROKEN = 1;
     private static final int MODE_COUNT = 2;
-    private int mMode = MODE_STROKE_START_INC_HOLD;
+    private int mMode;
     
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,7 +38,8 @@ public class MainActivity extends Activity {
         mOverlayPopup = new PopupWindow(mOverlay);
         
         mStrokeDetector = new StrokeGestureDetector(this, mStrokeListener);
-        updateMode();
+        
+        updateMode(MODE_STROKE_START_INC_HOLD);
     }
 	
 	private View.OnTouchListener mDragListener = new View.OnTouchListener() {
@@ -67,12 +68,18 @@ public class MainActivity extends Activity {
 		}
 	}
 	
-	private void updateMode() {
+	private void updateMode(int mode) {
+		mCount = 0;
+		mMode = mode;
 		switch(mMode) {
 		case MODE_STROKE_START_INC_HOLD:
+			mStrokeDetector.setHoldEnabled(true);
+    		mStrokeSensitivity = 1;
 	    	mTextViewMode.setText("Mode Z : Zigzag and Hold");
 			break;
 		case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+			mStrokeDetector.setHoldEnabled(false);
+    		mStrokeSensitivity = 3;
 	    	mTextViewMode.setText("Mode O : Circle and Reverse");
 			break;
 		}
@@ -89,7 +96,6 @@ public class MainActivity extends Activity {
 		@Override
 		public void onUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "Up");
-			mTextView1.setText("Stroke : "+mCount+ " Done.");
 	    	dismissPopupOnScreen();
 		}
 		
@@ -105,58 +111,32 @@ public class MainActivity extends Activity {
 		}
 		
 		@Override
-		public boolean onStrokeMove(MotionEvent e, float distanceX, float distanceY) {
-//			android.util.Log.i("Stroke", "Move "+distance);
-	    	showPopupOnScreen(mTextView1, e);
+		public boolean onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+			android.util.Log.i("Stroke", "Move e1="+e1+", e2="+e2+", dx="+distanceX+", dy="+distanceY);
+	    	switch(mMode) {
+	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
+				updateTextView();
+	    		break;
+	    	}
+	    	showPopupOnScreen(mTextView1, e2);
 			return false;
 		}
 		
 		@Override
 		public boolean onStrokeEnd(MotionEvent e1, MotionEvent e2) {
 			android.util.Log.i("Stroke", "End "+e2.getX()+","+e2.getY()+" from "+e1.getX()+","+e1.getY());
-			return false;
-		}
-		
-		
-		
-		@Override
-		public boolean onCurveSmooth(MotionEvent e, float distanceX, float distanceY, float cosineSquare) {
-	    	switch(mMode) {
-	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
-				updateTextView();
-	    		break;
-	    	}
-	    	showPopupOnScreen(mTextView1, e);
-			return super.onCurveSmooth(e, distanceX, distanceY, cosineSquare);
-		}
-
-		@Override
-		public boolean onCurveBroken(MotionEvent e, float distanceX, float distanceY, float cosineSquare) {
-			android.util.Log.i("Curve", "Broken "+e+" "+(distanceX*distanceX+distanceY*distanceY)+", cos="+cosineSquare);
 	    	switch(mMode) {
 	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
 				setStrokeIncreaseMount(-mStrokeIncreaseMount);
 	    		break;
 	    	}
-			return super.onCurveBroken(e, distanceX, distanceY, cosineSquare);
+			return false;
 		}
 
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "SingleTapUp "+e);
-			mCount = 0;
-	    	mMode = (mMode + 1) % MODE_COUNT;
-	    	switch(mMode) {
-	    	case MODE_STROKE_START_INC_HOLD:
-	    		mStrokeDetector.stroke();
-	    		mStrokeSensitivity = 1;
-	    		break;
-	    	case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
-	    		mStrokeDetector.curve();
-	    		mStrokeSensitivity = 3;
-	    		break;
-	    	}
-	    	updateMode();
+	    	updateMode((mMode + 1) % MODE_COUNT);
 			return false;
 		}
 		
@@ -167,9 +147,6 @@ public class MainActivity extends Activity {
 			case MODE_STROKE_START_INC_HOLD:
 				setStrokeIncreaseMount(-mStrokeIncreaseMount);
 				break;
-			case MODE_CURVE_SMOOTH_MOVE_INC_BROKEN:
-//				setStrokeIncreaseMount(-mStrokeIncreaseMount); // curve will 
-				break;
 			}
 		}
 	};
@@ -179,6 +156,7 @@ public class MainActivity extends Activity {
 			mOverlay.setImageResource(android.R.drawable.btn_plus);
 		else
 			mOverlay.setImageResource(android.R.drawable.btn_minus);
+		mOverlay.setAlpha(128);
 		mStrokeIncreaseMount = value;
 		mStrokeSensitivityFactor = 0;
 	}
@@ -189,16 +167,23 @@ public class MainActivity extends Activity {
         return true;
     }
     
+    private int[] mTempXY = null;
+    
     private void showPopupOnScreen(View v, MotionEvent ev) {
-		int popupWidth = mOverlay.getDrawable().getIntrinsicWidth() * 2;
-		int popupHeight = mOverlay.getDrawable().getIntrinsicHeight() * 2;
-    	if (mOverlayPopup.isShowing()) {
-    		mOverlayPopup.update(mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2, -1, -1);
-    	} else {
+		int popupWidth = mOverlay.getDrawable().getIntrinsicWidth();
+		int popupHeight = mOverlay.getDrawable().getIntrinsicHeight();
+		if (mTempXY == null) {
+			mTempXY = new int[2];
     		v.getLocationOnScreen(mTempXY);
+		}
+		int left = mTempXY[0] + (int)ev.getX() - popupWidth / 2;
+		int top = mTempXY[1] + (int)ev.getY() - popupHeight * 2;
+    	if (mOverlayPopup.isShowing()) {
+    		mOverlayPopup.update(left, top, -1, -1);
+    	} else {
     		mOverlayPopup.setWidth(popupWidth);
     		mOverlayPopup.setHeight(popupHeight);
-    		mOverlayPopup.showAtLocation(v, Gravity.NO_GRAVITY, mTempXY[0] + (int)ev.getX() - popupWidth / 2, mTempXY[1] + (int)ev.getY() - popupHeight / 2);
+    		mOverlayPopup.showAtLocation(v, Gravity.NO_GRAVITY, left, top);
     	}
     }
     
@@ -206,12 +191,4 @@ public class MainActivity extends Activity {
     	mOverlayPopup.dismiss();
     }
     
-    private int[] mTempXY = new int[2];
-    private void dumpViewLocation(View v) {
-    	v.getLocationInWindow(mTempXY);
-    	android.util.Log.i("nora", "--getLocationInWindow "+mTempXY[0]+","+mTempXY[1]);
-    	v.getLocationOnScreen(mTempXY);
-    	android.util.Log.i("nora", "  getLocationOnScreen "+mTempXY[0]+","+mTempXY[1]);
-    	android.util.Log.i("nora", "  getLeft="+v.getLeft()+", getTop="+v.getTop());
-    }
 }
