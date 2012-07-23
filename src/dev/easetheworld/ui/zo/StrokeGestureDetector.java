@@ -31,7 +31,7 @@ public class StrokeGestureDetector {
 		 * Notified when long pressed during touch down.
 		 * @return true : change to stop state, false : keep current state
 		 */
-		boolean onHold();
+		boolean onHold(float x, float y);
 		
         void onUp(MotionEvent e);
 
@@ -72,6 +72,7 @@ public class StrokeGestureDetector {
     
     // single tap
     private boolean mIsSingleTap;
+    private boolean mIsStroking;
 	
 	// hold
     private static final int HOLD_TIMEOUT = ViewConfiguration.getLongPressTimeout() / 2;
@@ -79,7 +80,7 @@ public class StrokeGestureDetector {
 
     // stroke
     private MotionEvent mStrokeStartEvent;
-    private static final double MIN_ANGLE_DIFF_BETWEEN_STROKES = Math.toRadians(90);
+    private static final double MIN_ANGLE_DIFF_BETWEEN_STROKES = Math.toRadians(60);
 	private double mThresholdCosineSquare;
     
     /**
@@ -127,7 +128,7 @@ public class StrokeGestureDetector {
 				final long now = SystemClock.uptimeMillis();
 //				android.util.Log.i("nora", "handleMessage now="+now+", last="+mLastMotionTime+", diff="+(now - mLastMotionTime));
 				if (now - mLastMotionTime > HOLD_TIMEOUT) {
-					if (mListener.onHold()) {
+					if (mListener.onHold(mLastMotionX, mLastMotionY)) {
 						mIsSingleTap = false;
 						mState = FIRST_STATE;
 					}
@@ -204,6 +205,7 @@ public class StrokeGestureDetector {
             sendHoldMessage();
             
             mIsSingleTap = true;
+            mIsStroking = false;
             
             mListener.onDown(ev);
             handled = true; // if ACTION_DOWN doesn't return true, ACTION_MOVE will not come.
@@ -241,6 +243,7 @@ public class StrokeGestureDetector {
             case STROKE:
 	            if (distance > mSmallSlopSquare) {
 					final float result = cosineSquare(distanceX, distanceY, mLastDistanceX, mLastDistanceY);
+		            android.util.Log.i("nora", "result="+result);
 		            if (result < mThresholdCosineSquare) {
 						mState = STROKE_TURN;
 						handled = mListener.onStrokeEnd(mStrokeStartEvent, ev);
@@ -252,6 +255,7 @@ public class StrokeGestureDetector {
 				}
 	            
 	            mIsSingleTap = false;
+	            mIsStroking = true;
             	break;
             }
             
@@ -286,6 +290,10 @@ public class StrokeGestureDetector {
         }
 
         return handled;
+    }
+    
+    public boolean isStroking() {
+    	return mIsStroking;
     }
 
     private void cancel() {

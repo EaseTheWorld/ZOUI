@@ -14,7 +14,7 @@
           android:layout_marginTop="80dip"
           android:gravity="center"
           android:textSize="24sp"
-          android:drawableLeft="@android:drawable/ic_menu_compass"
+          android:drawableLeft="@android:drawable/btn_plus"
           android:text="Drag me." />
       
       <dev.easetheworld.ui.zo.ZOProgressTextView

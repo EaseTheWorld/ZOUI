@@ -17,7 +17,6 @@ public class ZOProgressTextView extends TextView {
 	
     private static final int MODE_Z = 0;
     private static final int MODE_O = 1;
-    private static final int MODE_COUNT = 2;
     private int mMode;
     
 	private int mMax = 0;
@@ -35,14 +34,13 @@ public class ZOProgressTextView extends TextView {
 		super(context, attrs);
 		
         mStrokeDetector = new StrokeGestureDetector(getContext(), mStrokeListener);
-        mOverlay= (ImageView) LayoutInflater.from(getContext()).inflate(R.layout.gesture_overlay, null);
+        mOverlay = new ImageView(context);
+        mOverlay.setImageResource(android.R.drawable.btn_plus);
         mOverlayPopup = new PopupWindow(mOverlay);
         
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ZOProgressTextView); 
         mMax = a.getInt(R.styleable.ZOProgressTextView_android_max, mMax);
         mDistanceThreshold = a.getDimensionPixelSize(R.styleable.ZOProgressTextView_android_spacing, mDistanceThreshold);
-        
-        setMode(MODE_Z);
 	}
 	
 	public void setMax(int max) {
@@ -67,6 +65,7 @@ public class ZOProgressTextView extends TextView {
 		public void onDown(MotionEvent e) {
 			android.util.Log.i("Stroke", "Down");
 			setStrokeIncreaseMount(1);
+	        setMode(MODE_Z);
 		}
 		
 		@Override
@@ -100,7 +99,7 @@ public class ZOProgressTextView extends TextView {
 				mDistanceSum = mDistanceSum % mDistanceThreshold;
 	    		break;
 	    	}
-	    	showPopupOnScreen(e2);
+	    	showPopupOnScreen((int)e2.getX(), (int)e2.getY());
 			return false;
 		}
 		
@@ -118,16 +117,20 @@ public class ZOProgressTextView extends TextView {
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
 			android.util.Log.i("Stroke", "SingleTapUp "+e);
-	    	setMode((mMode + 1) % MODE_COUNT);
 			return false;
 		}
 		
 		@Override
-		public boolean onHold() {
+		public boolean onHold(float x, float y) {
 			android.util.Log.i("Stroke", "Hold");
 			switch(mMode) {
 			case MODE_Z:
-				setStrokeIncreaseMount(-mStrokeIncreaseMount);
+				if (mStrokeDetector.isStroking())
+					setStrokeIncreaseMount(-mStrokeIncreaseMount);
+				else {
+					setMode(MODE_O);
+					showPopupOnScreen((int)x, (int)y);
+				}
 				return true;
 			}
 			return false;
@@ -162,10 +165,10 @@ public class ZOProgressTextView extends TextView {
 		mMode = mode;
 		switch(mMode) {
 		case MODE_Z:
-    		setBackgroundColor(0xffffaaaa);
+			mOverlay.setBackgroundColor(0xffffffaa);
 			break;
 		case MODE_O:
-    		setBackgroundColor(0xffaaaaff);
+			mOverlay.setBackgroundColor(0xffaaaaff);
 			break;
 		}
 	}
@@ -175,16 +178,15 @@ public class ZOProgressTextView extends TextView {
 			mOverlay.setImageResource(android.R.drawable.btn_plus);
 		else
 			mOverlay.setImageResource(android.R.drawable.btn_minus);
-		mOverlay.setAlpha(128);
 		mStrokeIncreaseMount = value;
 	}
-    
-    private void showPopupOnScreen(MotionEvent ev) {
+	
+    private void showPopupOnScreen(int x, int y) {
 		int popupWidth = mOverlay.getDrawable().getIntrinsicWidth();
 		int popupHeight = mOverlay.getDrawable().getIntrinsicHeight();
 		getLocationOnScreen(mLocationXY);
-		int left = mLocationXY[0] + (int)ev.getX() - popupWidth / 2;
-		int top = mLocationXY[1] + (int)ev.getY() - popupHeight * 2;
+		int left = mLocationXY[0] + x - popupWidth / 2;
+		int top = mLocationXY[1] + y - popupHeight * 2;
     	if (mOverlayPopup.isShowing()) {
     		mOverlayPopup.update(left, top, -1, -1);
     	} else {
