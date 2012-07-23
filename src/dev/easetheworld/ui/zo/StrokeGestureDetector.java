@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
@@ -26,7 +27,11 @@ public class StrokeGestureDetector {
         
 		boolean onStrokeEnd(MotionEvent e1, MotionEvent e2);
 		
-		void onHold();
+		/**
+		 * Notified when long pressed during touch down.
+		 * @return true : change to stop state, false : keep current state
+		 */
+		boolean onHold();
 		
         void onUp(MotionEvent e);
 
@@ -57,18 +62,19 @@ public class StrokeGestureDetector {
     private float mLastDistanceX;
     private float mLastDistanceY;
     
+    // last move time. if this is too old, onHold will be fired.
+    private long mLastMotionTime;
+    
     // touch threshold
     private int mBigSlopSquare; // threshold for stroke start
     private static final int SMALL_SLOP_DIVISOR = 32; // mBigSlopSquare / DIVISOR = mSmallSlopSquare;
-    private int mSmallSlopSquare; // threshold for stroke end,  stroke hold
+    private int mSmallSlopSquare; // threhold to recognize direction
     
     // single tap
     private boolean mIsSingleTap;
 	
 	// hold
-    private boolean mIsHoldEnabled;
-	private boolean mIsWaitingForHold;
-    private static final int HOLD_TIMEOUT = ViewConfiguration.getLongPressTimeout();
+    private static final int HOLD_TIMEOUT = ViewConfiguration.getLongPressTimeout() / 2;
     private final Handler mHoldHandler;
 
     // stroke
@@ -118,11 +124,16 @@ public class StrokeGestureDetector {
 	    mHoldHandler = new Handler() {
 			@Override
 			public void handleMessage(Message msg) {
-				android.util.Log.e("nora", "HHHHHHHHHHHHold");
-				removeHoldMessage();
-				mIsSingleTap = false;
-				mState = FIRST_STATE;
-				mListener.onHold();
+				final long now = SystemClock.uptimeMillis();
+//				android.util.Log.i("nora", "handleMessage now="+now+", last="+mLastMotionTime+", diff="+(now - mLastMotionTime));
+				if (now - mLastMotionTime > HOLD_TIMEOUT) {
+					if (mListener.onHold()) {
+						mIsSingleTap = false;
+						mState = FIRST_STATE;
+					}
+				} else {
+					sendHoldMessage();
+				}
 			}
 	    };
 	    
@@ -133,8 +144,6 @@ public class StrokeGestureDetector {
         if (mListener == null) {
             throw new NullPointerException("OnGestureListener must not be null");
         }
-        
-        setHoldEnabled(true);
 	    
         mIgnoreMultitouch = ignoreMultitouch;
 
@@ -145,24 +154,6 @@ public class StrokeGestureDetector {
         
 		double cosine = Math.cos(MIN_ANGLE_DIFF_BETWEEN_STROKES);
 		mThresholdCosineSquare = cosine * cosine;
-		android.util.Log.i("nora", "BigSlop="+mBigSlopSquare+", SmallSlop="+mSmallSlopSquare+", cosSqr="+mThresholdCosineSquare);
-    }
-
-    /**
-     * Set whether hold is enabled, if this is enabled when a user
-     * presses and holds down you get a hold event.
-     *
-     * @param enabled whether hold should be enabled.
-     */
-    public void setHoldEnabled(boolean enabled) {
-        mIsHoldEnabled = enabled;
-    }
-
-    /**
-     * @return true if hold is enabled, else false.
-     */
-    public boolean isHoldEnabled() {
-        return mIsHoldEnabled;
     }
 
     /**
@@ -205,12 +196,12 @@ public class StrokeGestureDetector {
             mLastMotionX = x;
             mLastMotionY = y;
             
+            mLastMotionTime = ev.getEventTime();
+            
             mLastDistanceX = 0;
             mLastDistanceY = 0;
         	
-            mIsWaitingForHold = false;
-            if (mIsHoldEnabled)
-	            sendHoldMessage();
+            sendHoldMessage();
             
             mIsSingleTap = true;
             
@@ -228,7 +219,9 @@ public class StrokeGestureDetector {
             final float distanceY = y - mLastMotionY;
             final float distance = magnitudeSquare(distanceX, distanceY);
             
-            android.util.Log.i("nora", "state="+mState+", distance="+distance+"("+distanceX+","+distanceY+")");
+            android.util.Log.i("nora", "state="+mState+", distance="+distance+", timediff="+(ev.getEventTime() - mLastMotionTime));
+            
+            boolean updateLast = false;
             switch(mState) {
             case STROKE_TURN:
             	if (distance > mBigSlopSquare) {
@@ -238,44 +231,38 @@ public class StrokeGestureDetector {
 		            mStrokeStartEvent = MotionEvent.obtain(ev);
             		handled = mListener.onStrokeStart(mStrokeStartEvent);
             		
-		            mLastDistanceX = distanceX;
-		            mLastDistanceY = distanceY;
+            		updateLast = true;
+		            
+		            removeHoldMessage(); // hold message could be sent in DOWN.
+		            sendHoldMessage();
             	}
             	break;
             	
             case STROKE:
 	            if (distance > mSmallSlopSquare) {
 					final float result = cosineSquare(distanceX, distanceY, mLastDistanceX, mLastDistanceY);
-		            android.util.Log.i("nora", "    result="+result);
 		            if (result < mThresholdCosineSquare) {
 						mState = STROKE_TURN;
 						handled = mListener.onStrokeEnd(mStrokeStartEvent, ev);
 		            } else {
 		            	handled = mListener.onStrokeMove(mStrokeStartEvent, ev, distanceX, distanceY);
 		            }
-	            
-		            mLastMotionX = x;
-		            mLastMotionY = y;
 		            
-		            mLastDistanceX = distanceX;
-		            mLastDistanceY = distanceY;
-				}
-            	
-				if (mIsHoldEnabled) {
-					if (distance > mSmallSlopSquare) {
-						if (mIsWaitingForHold) {
-							removeHoldMessage();
-							sendHoldMessage();
-						}
-					} else {
-						if (!mIsWaitingForHold) {
-							sendHoldMessage();
-						}
-					}
+            		updateLast = true;
 				}
 	            
 	            mIsSingleTap = false;
             	break;
+            }
+            
+            if (updateLast) {
+	            mLastMotionX = x;
+	            mLastMotionY = y;
+	            
+	            mLastMotionTime = ev.getEventTime();
+	            
+	            mLastDistanceX = distanceX;
+	            mLastDistanceY = distanceY;
             }
             break;
 
@@ -306,14 +293,10 @@ public class StrokeGestureDetector {
     }
     
     private void sendHoldMessage() {
-    	android.util.Log.e("nora", "send hold");
-        mIsWaitingForHold = true;
 		mHoldHandler.sendEmptyMessageDelayed(0, HOLD_TIMEOUT);
     }
     
     private void removeHoldMessage() {
-    	android.util.Log.e("nora", "remove hold");
-        mIsWaitingForHold = false;
 		mHoldHandler.removeMessages(0);
     }
 	

@@ -99,13 +99,14 @@ public class ZOProgressTextView extends TextView {
 		}
 		
 		@Override
-		public void onHold() {
+		public boolean onHold() {
 			android.util.Log.i("Stroke", "Hold");
 			switch(mMode) {
 			case MODE_Z:
 				setStrokeIncreaseMount(-mStrokeIncreaseMount);
-				break;
+				return true;
 			}
+			return false;
 		}
 	};
 	
@@ -135,12 +136,10 @@ public class ZOProgressTextView extends TextView {
 		mMode = mode;
 		switch(mMode) {
 		case MODE_Z:
-			mStrokeDetector.setHoldEnabled(true);
     		mStrokeSensitivity = 1;
     		setBackgroundColor(0xffffaaaa);
 			break;
 		case MODE_O:
-			mStrokeDetector.setHoldEnabled(false);
     		mStrokeSensitivity = 3;
     		setBackgroundColor(0xffaaaaff);
 			break;
