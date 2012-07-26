@@ -13,8 +13,8 @@ public class ZOTouchViewController {
 	
 	private static final String TAG = "ZOTouchViewController";
 	
-    private static final int MODE_Z = 0;
-    private static final int MODE_O = 1;
+    public static final int MODE_Z = 0;
+    public static final int MODE_O = 1;
     private int mMode;
     
     private static final int DIRECTION_FORWARD = 1;
@@ -32,14 +32,14 @@ public class ZOTouchViewController {
     
     private int[] mLocationXY = new int[2];
     
-	private Dispatcher mDispatcher;
+	private Listener mListener;
 	
-	public ZOTouchViewController(Context context, Dispatcher dispatcher) {
+	public ZOTouchViewController(Context context, Listener dispatcher) {
 		this(context, dispatcher, DEFAULT_DISTANCE_THRESHOLD);
 	}
     
-	public ZOTouchViewController(Context context, Dispatcher dispatcher, int distanceThreshold) {
-		mDispatcher = dispatcher;
+	public ZOTouchViewController(Context context, Listener dispatcher, int distanceThreshold) {
+		mListener = dispatcher;
 		
         mStrokeDetector = new StrokeGestureDetector(context, mStrokeListener);
         mOverlay = new ImageView(context);
@@ -49,18 +49,23 @@ public class ZOTouchViewController {
         mDistanceThreshold = distanceThreshold;
 	}
 	
-	public static interface Dispatcher {
-		void onDispatchZ(View v, int value);
-		void onDispatchO(View v, int value);
+	public static interface Listener {
+		void onMove(int mode, View v, int value);
+		void onClick(View v);
 	}
 	
-	private View mTouchedView;
+	private View mMotionTarget;
 	
 	private View.OnTouchListener mOnTouchListener = new View.OnTouchListener() {
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			mTouchedView = v;
-			return mStrokeDetector.onTouchEvent(event);
+			final int action = event.getAction();
+			if (action == MotionEvent.ACTION_DOWN)
+				mMotionTarget = v;
+			boolean ret = mStrokeDetector.onTouchEvent(event);
+			if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
+				mMotionTarget = null;
+			return ret;
 		}
 	};
 	
@@ -93,7 +98,7 @@ public class ZOTouchViewController {
 			Log.i(TAG, "Start "+e.getX()+","+e.getY());
 			switch(mMode) {
 			case MODE_Z:
-				mDispatcher.onDispatchZ(mTouchedView, mDirection);
+				mListener.onMove(mMode, mMotionTarget, mDirection);
 				break;
 			case MODE_O:
 				mDistanceSum = 0;
@@ -110,7 +115,7 @@ public class ZOTouchViewController {
 	    		mDistanceSum += FloatMath.sqrt(distanceX * distanceX + distanceY * distanceY);
 	    		int diff = (int)(mDistanceSum / mDistanceThreshold);
 				mDistanceSum = mDistanceSum % mDistanceThreshold;
-				mDispatcher.onDispatchO(mTouchedView, mDirection * diff);
+				mListener.onMove(mMode, mMotionTarget, mDirection * diff);
 	    		break;
 	    	}
 	    	showPopupOnScreen((int)e2.getX(), (int)e2.getY());
@@ -130,6 +135,7 @@ public class ZOTouchViewController {
 
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
+			mListener.onClick(mMotionTarget);
 			Log.i(TAG, "SingleTapUp "+e);
 			return false;
 		}
@@ -175,7 +181,7 @@ public class ZOTouchViewController {
     private void showPopupOnScreen(int x, int y) {
 		int popupWidth = mOverlay.getDrawable().getIntrinsicWidth();
 		int popupHeight = mOverlay.getDrawable().getIntrinsicHeight();
-		mTouchedView.getLocationOnScreen(mLocationXY);
+		mMotionTarget.getLocationOnScreen(mLocationXY);
 		int left = mLocationXY[0] + x - popupWidth / 2;
 		int top = mLocationXY[1] + y - popupHeight * 2;
     	if (mOverlayPopup.isShowing()) {
@@ -183,7 +189,7 @@ public class ZOTouchViewController {
     	} else {
     		mOverlayPopup.setWidth(popupWidth);
     		mOverlayPopup.setHeight(popupHeight);
-    		mOverlayPopup.showAtLocation(mTouchedView, Gravity.NO_GRAVITY, left, top);
+    		mOverlayPopup.showAtLocation(mMotionTarget, Gravity.NO_GRAVITY, left, top);
     	}
     }
     

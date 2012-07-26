@@ -221,7 +221,7 @@ public class StrokeGestureDetector {
             final float distanceY = y - mLastMotionY;
             final float distance = magnitudeSquare(distanceX, distanceY);
             
-            android.util.Log.i("nora", "state="+mState+", distance="+distance+", timediff="+(ev.getEventTime() - mLastMotionTime));
+//            android.util.Log.i("nora", "state="+mState+", distance="+distance+", timediff="+(ev.getEventTime() - mLastMotionTime));
             
             boolean updateLast = false;
             switch(mState) {
@@ -243,7 +243,6 @@ public class StrokeGestureDetector {
             case STROKE:
 	            if (distance > mSmallSlopSquare) {
 					final float result = cosineSquare(distanceX, distanceY, mLastDistanceX, mLastDistanceY);
-		            android.util.Log.i("nora", "result="+result);
 		            if (result < mThresholdCosineSquare) {
 						mState = STROKE_TURN;
 						handled = mListener.onStrokeEnd(mStrokeStartEvent, ev);

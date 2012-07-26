@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
@@ -26,16 +27,16 @@ public class MainActivity extends Activity {
         mTextView1 = (TextView)findViewById(android.R.id.text1);
         mTextView2 = (TextView)findViewById(android.R.id.text2);
         
-        mZOController = new ZOTouchViewController(this, mZODispatcher, 120);
+        mZOController = new ZOTouchViewController(this, mZOListener, 120);
         
         mZOController.addView(mTextView1);
         mZOController.addView(mTextView2);
     }
 	
-	private ZOTouchViewController.Dispatcher mZODispatcher = new ZOTouchViewController.Dispatcher() {
+	private ZOTouchViewController.Listener mZOListener = new ZOTouchViewController.Listener() {
 		
 		@Override
-		public void onDispatchZ(View v, int value) {
+		public void onMove(int mode, View v, int value) {
 			switch(v.getId()) {
 			case android.R.id.text1:
 				mValue1 = rotatedAdd(mValue1, value, VALUE_MIN, VALUE_MAX);
@@ -47,19 +48,10 @@ public class MainActivity extends Activity {
 				break;
 			}
 		}
-		
+
 		@Override
-		public void onDispatchO(View v, int value) {
-			switch(v.getId()) {
-			case android.R.id.text1:
-				mValue1 = rotatedAdd(mValue1, value, VALUE_MIN, VALUE_MAX);
-				mTextView1.setText(String.valueOf(mValue1));
-				break;
-			case android.R.id.text2:
-				mValue2 = rotatedAdd(mValue2, value, VALUE_MIN, VALUE_MAX);
-				mTextView2.setText(String.valueOf(mValue2));
-				break;
-			}
+		public void onClick(View v) {
+			Toast.makeText(v.getContext(), "Clicked.", Toast.LENGTH_SHORT).show();
 		}
 	};
 	
