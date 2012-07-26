@@ -1,11 +1,11 @@
 package com.easetheworld.diagonal;
 
-import dev.easetheworld.ui.zo.ZOTouchViewController;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import dev.easetheworld.ui.zo.ZOTouchListener;
 
 public class MainActivity extends Activity {
 	
@@ -14,10 +14,9 @@ public class MainActivity extends Activity {
 	
 	private static final int VALUE_MIN = 0;
 	private static final int VALUE_MAX = 29;
+	
 	private int mValue1;
 	private int mValue2;
-	
-	private ZOTouchViewController mZOController;
     
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -27,13 +26,12 @@ public class MainActivity extends Activity {
         mTextView1 = (TextView)findViewById(android.R.id.text1);
         mTextView2 = (TextView)findViewById(android.R.id.text2);
         
-        mZOController = new ZOTouchViewController(this, mZOListener, 120);
-        
-        mZOController.addView(mTextView1);
-        mZOController.addView(mTextView2);
+        ZOTouchListener listener = new ZOTouchListener(this, mZODispatcher);
+        mTextView1.setOnTouchListener(listener);
+        mTextView2.setOnTouchListener(listener);
     }
 	
-	private ZOTouchViewController.Listener mZOListener = new ZOTouchViewController.Listener() {
+	private ZOTouchListener.Dispatcher mZODispatcher = new ZOTouchListener.Dispatcher() {
 		
 		@Override
 		public void onMove(int mode, View v, int value) {
@@ -48,7 +46,7 @@ public class MainActivity extends Activity {
 				break;
 			}
 		}
-
+		
 		@Override
 		public void onClick(View v) {
 			Toast.makeText(v.getContext(), "Clicked.", Toast.LENGTH_SHORT).show();
