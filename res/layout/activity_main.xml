@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical" >
     
-      <dev.easetheworld.ui.zo.ZOProgressTextView
+      <TextView
           android:id="@android:id/text1"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
@@ -17,7 +17,7 @@
           android:drawableLeft="@android:drawable/btn_plus"
           android:text="Drag me." />
       
-      <dev.easetheworld.ui.zo.ZOProgressTextView
+      <TextView
           android:id="@android:id/text2"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
