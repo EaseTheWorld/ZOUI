@@ -72,7 +72,6 @@ public class StrokeGestureDetector {
     
     // single tap
     private boolean mIsSingleTap;
-    private boolean mIsStroking;
 	
 	// hold
     private static final int HOLD_TIMEOUT = ViewConfiguration.getLongPressTimeout() / 2;
@@ -205,7 +204,6 @@ public class StrokeGestureDetector {
             sendHoldMessage();
             
             mIsSingleTap = true;
-            mIsStroking = false;
             
             mListener.onDown(ev);
             handled = true; // if ACTION_DOWN doesn't return true, ACTION_MOVE will not come.
@@ -254,7 +252,6 @@ public class StrokeGestureDetector {
 				}
 	            
 	            mIsSingleTap = false;
-	            mIsStroking = true;
             	break;
             }
             
@@ -289,10 +286,6 @@ public class StrokeGestureDetector {
         }
 
         return handled;
-    }
-    
-    public boolean isStroking() {
-    	return mIsStroking;
     }
 
     private void cancel() {
