@@ -13,9 +13,12 @@ public class ZOTouchListener implements View.OnTouchListener {
 	
 	private static final String TAG = "ZOTouchViewController";
 	
+    public static final int MODE_NONE = -1;
     public static final int MODE_Z = 0;
     public static final int MODE_O = 1;
     private int mMode;
+    
+	private static final long THRESHOLD_START_MODE_O_INTERVAL = 150;
     
     private static final int DIRECTION_FORWARD = 1;
     private static final int DIRECTION_BACKWARD = -DIRECTION_FORWARD;
@@ -56,13 +59,16 @@ public class ZOTouchListener implements View.OnTouchListener {
 	
 	private View mMotionTarget;
 	
+	private long mDownTime;
+	
 	private StrokeGestureDetector.OnStrokeGestureListener mStrokeListener = new StrokeGestureDetector.OnStrokeGestureListener() {
 		
 		@Override
 		public void onDown(MotionEvent e) {
 			Log.i(TAG, "Down");
+			mDownTime = e.getEventTime();
+			setMode(MODE_NONE);
 			setDirection(DIRECTION_FORWARD);
-	        setMode(MODE_Z);
 		}
 		
 		@Override
@@ -74,6 +80,14 @@ public class ZOTouchListener implements View.OnTouchListener {
 		@Override
 		public boolean onStrokeStart(MotionEvent e) {
 			Log.i(TAG, "Start "+e.getX()+","+e.getY());
+			if (mDownTime != -1) { // check first down-move time
+				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL)
+			        setMode(MODE_Z);
+				else
+			        setMode(MODE_O);
+				mDownTime = -1;
+			}
+			
 			switch(mMode) {
 			case MODE_Z:
 				mDispatcher.onMove(mMode, mMotionTarget, mDirection);
@@ -123,12 +137,7 @@ public class ZOTouchListener implements View.OnTouchListener {
 			Log.i(TAG, "Hold "+x+", "+y);
 			switch(mMode) {
 			case MODE_Z:
-				if (mStrokeDetector.isStroking())
-		    		setDirection(-mDirection);
-				else {
-					setMode(MODE_O);
-					showPopupOnScreen((int)x, (int)y);
-				}
+	    		setDirection(-mDirection);
 				return true;
 			}
 			return false;
