@@ -8,7 +8,6 @@
 	    android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
 	    android:layout_gravity="center_vertical"
-	    android:layout_margin="20dip"
 	    android:orientation="vertical" >
 	      <TextView
 	          android:id="@android:id/text1"
@@ -18,7 +17,7 @@
 	          android:id="@android:id/button1"
 	          android:layout_width="match_parent"
 	          android:layout_height="64dip"
-	          android:layout_marginTop="10dip"
+			  android:layout_margin="10dip"
 	          android:background="#888888"
 	          android:gravity="center"
 	          android:textSize="24sp" />
@@ -27,12 +26,12 @@
 	          android:id="@android:id/text2"
 	          android:layout_width="wrap_content"
 	          android:layout_height="wrap_content"
-	          android:layout_marginTop="20dip" />
+	          android:layout_marginTop="10dip" />
 	      <TextView
 	          android:id="@android:id/button2"
 	          android:layout_width="match_parent"
 	          android:layout_height="64dip"
-	          android:layout_marginTop="10dip"
+			  android:layout_margin="10dip"
 	          android:background="#888888"
 	          android:gravity="center"
 	          android:textSize="24sp" />

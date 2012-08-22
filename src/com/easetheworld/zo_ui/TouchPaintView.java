@@ -13,7 +13,7 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import dev.easetheworld.recentbuffer.RecentBuffer;
 
-public class GestureView extends View {
+public class TouchPaintView extends View {
 	
 	private boolean mIsAnalyzing;
 	
@@ -28,7 +28,7 @@ public class GestureView extends View {
     
 	private RecentBuffer<PointF> mData = new RecentBuffer<PointF>(MAX_COUNT, PointF.class);
 
-	public GestureView(Context context, AttributeSet attrs) {
+	public TouchPaintView(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		
 		setIsAnalyzing(false);

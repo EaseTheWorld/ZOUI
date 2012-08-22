@@ -22,7 +22,7 @@ public class ZOSeparateTestActivity extends Activity {
         setContentView(R.layout.zo_test);
         
         TextView text1 = (TextView)findViewById(android.R.id.text1);
-        text1.setText("Z mode triggered when a stroke start or turn back. First stroke's direction decides the sign.");
+        text1.setText("Z mode triggered when a stroke start or turn back in ANY direction. First stroke's direction decides the sign.");
         
         TextView btn1 = (TextView)findViewById(android.R.id.button1);
         btn1.setText("Z");
@@ -52,7 +52,7 @@ public class ZOSeparateTestActivity extends Activity {
 		}).setMode(ZOTouchListener.MODE_Z));
         
         TextView text2 = (TextView)findViewById(android.R.id.text2);
-        text2.setText("O mode triggered when a stroke is moving. To reverse the sign, move backward.");
+        text2.setText("O mode triggered when a stroke is moving in ANY direction. To reverse the sign, move backward.");
         
         TextView btn2 = (TextView)findViewById(android.R.id.button2);
         btn2.setText("O");

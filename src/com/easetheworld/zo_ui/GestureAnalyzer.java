@@ -18,7 +18,7 @@ import dev.easetheworld.ui.zo.StrokeTracker;
 
 public class GestureAnalyzer extends Activity {
 	
-	private GestureView mGestureView;
+	private TouchPaintView mTouchPaintView;
 	private CheckBox mModeCheckBox;
 	private ListView mResultList;
 
@@ -29,14 +29,14 @@ public class GestureAnalyzer extends Activity {
         
         mTracker = new StrokeTracker(this);
         
-        mGestureView = (GestureView)findViewById(R.id.gestureView);
+        mTouchPaintView = (TouchPaintView)findViewById(R.id.touchPaintView);
         
         mResultList = (ListView)findViewById(android.R.id.list);
         mResultList.setDivider(null);
         mResultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				mGestureView.highlightPoint(position);
+				mTouchPaintView.highlightPoint(position);
 			}
 		});
         
@@ -47,7 +47,7 @@ public class GestureAnalyzer extends Activity {
 			
 			@Override
 			public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-				mGestureView.highlightPoints(firstVisibleItem, firstVisibleItem + visibleItemCount - 1);
+				mTouchPaintView.highlightPoints(firstVisibleItem, firstVisibleItem + visibleItemCount - 1);
 			}
 		});
         
@@ -62,9 +62,9 @@ public class GestureAnalyzer extends Activity {
     }
     
     private void setAnalyzeMode(boolean isAnalyzing) {
-		mGestureView.setIsAnalyzing(isAnalyzing);
+		mTouchPaintView.setIsAnalyzing(isAnalyzing);
 		if (isAnalyzing) {
-	        mResultList.setAdapter(new ResultAdapter(this, analyze(mGestureView.getTouchData())));
+	        mResultList.setAdapter(new ResultAdapter(this, analyze(mTouchPaintView.getTouchData())));
 //			mResultList.setVisibility(View.VISIBLE);
 		} else {
 //			mResultList.setVisibility(View.GONE);
