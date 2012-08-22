@@ -78,13 +78,15 @@ public class ZOTouchListener implements View.OnTouchListener {
 		}
 		
 		@Override
-		public boolean onStrokeStart(MotionEvent e) {
-			Log.i(TAG, "Start "+e.getX()+","+e.getY());
+		public boolean onStrokeStart(MotionEvent e, float directionX, float directionY) {
+			Log.i(TAG, "Start "+e.getX()+","+e.getY()+", direction "+directionX+", "+directionY);
 			if (mDownTime != -1) { // check first down-move time
-				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL)
+				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL) {
 			        setMode(MODE_Z);
-				else
+				} else {
 			        setMode(MODE_O);
+			        mDirection = -mDirection;
+				}
 				mDownTime = -1;
 			}
 			
@@ -94,6 +96,11 @@ public class ZOTouchListener implements View.OnTouchListener {
 				break;
 			case MODE_O:
 				mDistanceSum = 0;
+		    	switch(mMode) {
+		    	case MODE_O:
+		    		setDirection(-mDirection);
+		    		break;
+		    	}
 				break;
 			}
 			return false;
@@ -113,33 +120,11 @@ public class ZOTouchListener implements View.OnTouchListener {
 	    	showPopupOnScreen((int)e2.getX(), (int)e2.getY());
 			return false;
 		}
-		
-		@Override
-		public boolean onStrokeEnd(MotionEvent e1, MotionEvent e2) {
-			Log.i(TAG, "End "+e2.getX()+","+e2.getY()+" from "+e1.getX()+","+e1.getY());
-	    	switch(mMode) {
-	    	case MODE_O:
-	    		setDirection(-mDirection);
-	    		break;
-	    	}
-			return false;
-		}
 
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
 			mDispatcher.onClick(mMotionTarget);
 			Log.i(TAG, "SingleTapUp "+e);
-			return false;
-		}
-		
-		@Override
-		public boolean onHold(float x, float y) {
-			Log.i(TAG, "Hold "+x+", "+y);
-			switch(mMode) {
-			case MODE_Z:
-	    		setDirection(-mDirection);
-				return true;
-			}
 			return false;
 		}
 	};
