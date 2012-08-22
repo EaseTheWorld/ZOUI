@@ -21,7 +21,8 @@ Mode Z is one trigger per one stroke.
 Mode O
 ------
 Mode Z is for few-time trigger but I need something for more-than-10-time trigger.
-- Mode O is like invisible progress bar. You stroke any direction then `onMove(O, value)` will be called while you are moving.
+Mode O is like invisible progress bar. You draw a circle. This is 'O'.
+- You stroke any direction without sudden angle change then `onMove(O, value)` will be called while you are moving.
 - To reverse the sign of the value, move backward. First sign is always positive.
 - The size of the value is in proportion to the moving distance.
 - Distance threshold can be set in `ZOTouchListener(context, listener, distanceThresholdDip)`. It is in dip unit so it will be scaled automatically.
