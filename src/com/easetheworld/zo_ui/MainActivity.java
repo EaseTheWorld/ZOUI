@@ -1,4 +1,6 @@
-package com.easetheworld.diagonal;
+package com.easetheworld.zo_ui;
+
+import com.easetheworld.diagonal.R;
 
 import android.app.Activity;
 import android.os.Bundle;
