@@ -1,7 +1,5 @@
 package com.easetheworld.zo_ui;
 
-import com.easetheworld.diagonal.R;
-
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
@@ -9,7 +7,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import dev.easetheworld.ui.zo.ZOTouchListener;
 
-public class MainActivity extends Activity {
+public class ZOTestActivity extends Activity {
 	
 	private TextView mTextView1;
 	private TextView mTextView2;
@@ -23,7 +21,7 @@ public class MainActivity extends Activity {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.zo_test);
         
         mTextView1 = (TextView)findViewById(android.R.id.text1);
         mTextView2 = (TextView)findViewById(android.R.id.text2);
