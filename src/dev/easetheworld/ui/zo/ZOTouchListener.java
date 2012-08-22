@@ -11,11 +11,12 @@ import android.widget.PopupWindow;
 
 public class ZOTouchListener implements View.OnTouchListener {
 	
-	private static final String TAG = "ZOTouchViewController";
+	private static final String TAG = "ZOTouchListener";
 	
-    public static final int MODE_NONE = -1;
-    public static final int MODE_Z = 0;
-    public static final int MODE_O = 1;
+    private static final int MODE_ZO = 0;
+    public static final int MODE_Z = 1;
+    public static final int MODE_O = 2;
+	private int mStartMode;
     private int mMode;
     
 	private static final long THRESHOLD_START_MODE_O_INTERVAL = 150;
@@ -50,10 +51,19 @@ public class ZOTouchListener implements View.OnTouchListener {
         mOverlayPopup = new PopupWindow(mOverlay);
         
         mDistanceThreshold = distanceThreshold;
+        
+        mStartMode = MODE_ZO;
+	}
+	
+	public ZOTouchListener setMode(int mode) {
+		mStartMode = mode;
+		return this;
 	}
 	
 	public static interface Dispatcher {
+		void onDown(View v);
 		void onMove(int mode, View v, int value);
+		void onUp(View v);
 		void onClick(View v);
 	}
 	
@@ -65,40 +75,51 @@ public class ZOTouchListener implements View.OnTouchListener {
 		
 		@Override
 		public void onDown(MotionEvent e) {
-			Log.i(TAG, "Down");
-			mDownTime = e.getEventTime();
-			setMode(MODE_NONE);
+			Log.i(TAG, "Down "+e);
+			if (mStartMode == MODE_ZO) {
+				mDownTime = e.getEventTime();
+			} else {
+				mDownTime = -1;
+			}
+			setModeInternal(mStartMode);
 			setDirection(DIRECTION_FORWARD);
+			mDispatcher.onDown(mMotionTarget);
 		}
 		
 		@Override
 		public void onUp(MotionEvent e) {
-			Log.i(TAG, "Up");
+			Log.i(TAG, "Up "+e);
 	    	dismissPopupOnScreen();
+			mDispatcher.onUp(mMotionTarget);
 		}
 		
 		@Override
-		public boolean onStrokeStart(MotionEvent e, float directionX, float directionY) {
-			Log.i(TAG, "Start "+e.getX()+","+e.getY()+", direction "+directionX+", "+directionY);
-			if (mDownTime != -1) { // check first down-move time
-				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL) {
-			        setMode(MODE_Z);
-				} else {
-			        setMode(MODE_O);
-			        mDirection = -mDirection;
-				}
+		public boolean onStrokeStart(MotionEvent e, int index, float directionX, float directionY) {
+			Log.i(TAG, "Start "+index+" "+e.getX()+","+e.getY()+", direction "+directionX+", "+directionY);
+			if (index == 0 && mDownTime != -1) { // check first down time
+				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL)
+					setModeInternal(MODE_Z);
+				else
+					setModeInternal(MODE_O);
 				mDownTime = -1;
 			}
 			
 			switch(mMode) {
 			case MODE_Z:
+				if (index == 0) {
+					if (directionY > 0)
+						setDirection(DIRECTION_FORWARD);
+					else
+						setDirection(DIRECTION_BACKWARD);
+				}
 				mDispatcher.onMove(mMode, mMotionTarget, mDirection);
 				break;
 			case MODE_O:
 				mDistanceSum = 0;
 		    	switch(mMode) {
 		    	case MODE_O:
-		    		setDirection(-mDirection);
+		    		if (index > 0)
+			    		setDirection(-mDirection);
 		    		break;
 		    	}
 				break;
@@ -108,7 +129,7 @@ public class ZOTouchListener implements View.OnTouchListener {
 		
 		@Override
 		public boolean onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-//			Log.i(TAG, "Move e1="+e1+", e2="+e2+", dx="+distanceX+", dy="+distanceY);
+//			Log.i(TAG, "Move e1="+e1+", e2="+e2+", distance "+distanceX+", "+distanceY);
 	    	switch(mMode) {
 	    	case MODE_O:
 	    		mDistanceSum += FloatMath.sqrt(distanceX * distanceX + distanceY * distanceY);
@@ -123,22 +144,22 @@ public class ZOTouchListener implements View.OnTouchListener {
 
 		@Override
 		public boolean onSingleTapUp(MotionEvent e) {
-			mDispatcher.onClick(mMotionTarget);
 			Log.i(TAG, "SingleTapUp "+e);
+			mDispatcher.onClick(mMotionTarget);
 			return false;
 		}
 	};
 	
-	private void setMode(int mode) {
+	private void setModeInternal(int mode) {
 		mMode = mode;
-		switch(mMode) {
-		case MODE_Z:
-			mOverlay.setBackgroundColor(0xffffffaa);
-			break;
-		case MODE_O:
-			mOverlay.setBackgroundColor(0xffaaaaff);
-			break;
-		}
+//		switch(mMode) {
+//		case MODE_Z:
+//			mOverlay.setBackgroundColor(0xffffffaa);
+//			break;
+//		case MODE_O:
+//			mOverlay.setBackgroundColor(0xffaaaaff);
+//			break;
+//		}
 	}
 	
 	private void setDirection(int direction) {

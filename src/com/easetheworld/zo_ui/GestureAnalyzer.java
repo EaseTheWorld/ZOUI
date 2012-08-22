@@ -83,7 +83,7 @@ public class GestureAnalyzer extends Activity {
     		else
 	    		mTracker.addTouchMove(p.x, p.y);
     		int state = mTracker.getState();
-    		float angle = (state >= 0 ? mTracker.getAngle() : 0);
+    		float angle = mTracker.getCosineSquareAngle();
     		results[i] = new ResultItem((angle+1f)/2f, state);
     	}
     	return results;

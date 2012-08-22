@@ -36,14 +36,20 @@ public class StrokeTracker {
         mMinLengthForVector = mMinLengthForStroke / 16f;
 	}
 	
-	private static final int STROKE_TURN = 0;
+	public static final int STROKE_TURNING = 0;
 	public static final int STROKE_START = 1;
 	public static final int STROKE_MOVE = 2;
 	private int mState;
 	
 	private static final float COSINE_FOR_INVALID_VECTORS = 1f;
-	private float mAngle;
+	private float mCosineSquareAngle;
 	
+	/**
+	 * Call this at touch down event with x, y.
+	 * 
+	 * @param x
+	 * @param y
+	 */
 	public void addTouchDown(float x, float y) {
 		mV1.clear();
 		mV2.clear();
@@ -52,9 +58,16 @@ public class StrokeTracker {
 		mPointBuffer.obtain().set(x, y);
 		
 		mTurningPoint.set(x, y);
-		mState = STROKE_TURN;
+		mCosineSquareAngle = COSINE_FOR_INVALID_VECTORS;
+		mState = STROKE_TURNING;
 	}
 	
+	/**
+	 * Call this at touch move event with x, y.
+	 * 
+	 * @param x
+	 * @param y
+	 */
 	public int addTouchMove(float x, float y) {
 		mPointBuffer.obtain().set(x, y);
 		
@@ -75,13 +88,13 @@ public class StrokeTracker {
 				// remove the previous stroke part.
 				mPointBuffer.removeSince(MIN_POINTS_FOR_VECTOR);
 				mV1.clear();
-				mState = STROKE_TURN;
+				mState = STROKE_TURNING;
 			}
 		}
-		mAngle = cosSqr;
+		mCosineSquareAngle = cosSqr;
 		
 		switch(mState) {
-		case STROKE_TURN:
+		case STROKE_TURNING:
 			if (mStrokeStart.checkAndSet(mTurningPoint, e, mMinLengthForStroke)) { // long enough to be a stroke
 //				android.util.Log.e(TAG, "Started");
 				mState = STROKE_START;
@@ -94,14 +107,29 @@ public class StrokeTracker {
 		return mState;
 	}
 	
-	public float getAngle() {
-		return mAngle;
+	/**
+	 * This is about the angle between two vectors.
+	 * This returns cosine square of the angle except keep the original sign of the cosine.
+	 * 
+	 * @return
+	 */
+	public float getCosineSquareAngle() {
+		return mCosineSquareAngle;
 	}
 	
+	/**
+	 * return the current state : turning, stroke start, stroke move
+	 * @return
+	 */
 	public int getState() {
 		return mState;
 	}
 	
+	
+	/**
+	 * return the start direction of the current stroke.
+	 * @return
+	 */
 	public PointF getStrokeStartDirection() {
 		return mStrokeStart;
 	}
