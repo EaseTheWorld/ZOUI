@@ -8,6 +8,8 @@ import dev.easetheworld.recentbuffer.RecentBuffer;
 
 public class StrokeTracker {
 	
+	private static final String TAG = "StrokeTracker";
+	
 	private static final int MIN_POINTS_FOR_VECTOR = 3;
 	private static final float MIN_COSINE_SQUARE_FOR_NEW_STROKE = (float)cosineSquare(90);
 	
@@ -42,13 +44,10 @@ public class StrokeTracker {
 	private static final float COSINE_FOR_INVALID_VECTORS = 1f;
 	private float mAngle;
 	
-	private int mPointIndex;
-	
 	public void addTouchDown(float x, float y) {
 		mV1.clear();
 		mV2.clear();
 		
-		mPointIndex = 0;
 		mPointBuffer.clear();
 		mPointBuffer.obtain().set(x, y);
 		
@@ -62,17 +61,16 @@ public class StrokeTracker {
 		PointF e = mPointBuffer.get(0);
 		PointF m = mPointBuffer.get(MIN_POINTS_FOR_VECTOR - 1);
 		PointF s = mPointBuffer.get((MIN_POINTS_FOR_VECTOR - 1) * 2);
-//		android.util.Log.i("nora", "add x="+x+", y="+y+", index="+mPointIndex+", s="+(s==null?s:s.x+","+s.y)+", m="+(m==null?m:m.x+","+m.y)+", e="+(e==null?e:e.x+","+e.y));
-		mPointIndex++;
+//		android.util.Log.i(TAG, "add x="+x+", y="+y+", s="+(s==null?s:s.x+","+s.y)+", m="+(m==null?m:m.x+","+m.y)+", e="+(e==null?e:e.x+","+e.y));
 		
 		float cosSqr = COSINE_FOR_INVALID_VECTORS;
 		mV1.checkAndSet(s, m, mMinLengthForVector);
 		if (mV2.checkAndSet(m, e, mMinLengthForVector)) {
 			// update angle
 			cosSqr = mV1.cosineSquare(mV2);
-//			android.util.Log.i("nora", "cosine="+cosSqr+" v1="+mV1+", v2="+mV2);
+//			android.util.Log.i(TAG, "cosine="+cosSqr+" v1="+mV1+", v2="+mV2);
 			if (cosSqr < MIN_COSINE_SQUARE_FOR_NEW_STROKE) {
-//				android.util.Log.e("nora", "Turned");
+//				android.util.Log.e(TAG, "Turned");
 				mTurningPoint.set(m.x, m.y);
 				// remove the previous stroke part.
 				mPointBuffer.removeSince(MIN_POINTS_FOR_VECTOR);
@@ -85,7 +83,7 @@ public class StrokeTracker {
 		switch(mState) {
 		case STROKE_TURN:
 			if (mStrokeStart.checkAndSet(mTurningPoint, e, mMinLengthForStroke)) { // long enough to be a stroke
-//				android.util.Log.e("nora", "Started");
+//				android.util.Log.e(TAG, "Started");
 				mState = STROKE_START;
 			}
 			break;
@@ -132,11 +130,11 @@ public class StrokeTracker {
 			float vy = p2.y - p1.y;
 			float vl = vx * vx + vy * vy;
 			if (vl > minLength) {
-//				android.util.Log.w("nora", "    checkAndSet vx="+vx+", vy="+vy+", vl="+vl);
+//				android.util.Log.w(TAG, "    checkAndSet vx="+vx+", vy="+vy+", vl="+vl);
 				set(vx, vy, vl);
 				return true;
 			} else {
-//				android.util.Log.i("nora", "    checkAndSet vx="+vx+", vy="+vy+", vl="+vl);
+//				android.util.Log.i(TAG, "    checkAndSet vx="+vx+", vy="+vy+", vl="+vl);
 				return false;
 			}
 		}
