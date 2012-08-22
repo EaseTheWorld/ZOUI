@@ -45,7 +45,7 @@ public class ZOTouchListener implements View.OnTouchListener {
     
 	private float mDistanceSum;
 	private int mDistanceThreshold;
-	private static final int DEFAULT_DISTANCE_THRESHOLD = 20;
+	private static final int DEFAULT_DISTANCE_THRESHOLD_DIP = 20;
     
     private PopupWindow mOverlayPopup;
     private ImageView mOverlay;
@@ -57,10 +57,10 @@ public class ZOTouchListener implements View.OnTouchListener {
 	private Dispatcher mDispatcher;
 	
 	public ZOTouchListener(Context context, Dispatcher dispatcher) {
-		this(context, dispatcher, DEFAULT_DISTANCE_THRESHOLD);
+		this(context, dispatcher, DEFAULT_DISTANCE_THRESHOLD_DIP);
 	}
     
-	public ZOTouchListener(Context context, Dispatcher dispatcher, int distanceThreshold) {
+	public ZOTouchListener(Context context, Dispatcher dispatcher, int distanceThresholdDip) {
 		mDispatcher = dispatcher;
 		
         mStrokeDetector = new StrokeGestureDetector(context, mStrokeListener);
@@ -68,7 +68,7 @@ public class ZOTouchListener implements View.OnTouchListener {
         mOverlay.setImageResource(android.R.drawable.btn_plus);
         mOverlayPopup = new PopupWindow(mOverlay);
         
-        mDistanceThreshold = distanceThreshold;
+        mDistanceThreshold = (int)(context.getResources().getDisplayMetrics().density * distanceThresholdDip);
         
         mStartMode = MODE_ZO;
 	}
