@@ -112,7 +112,7 @@ public class ZOTouchListener implements View.OnTouchListener {
 		}
 		
 		@Override
-		public boolean onStrokeStart(MotionEvent e, int index, float directionX, float directionY) {
+		public void onStrokeStart(MotionEvent e, int index, float directionX, float directionY) {
 			Log.i(TAG, "Start "+index+" "+e.getX()+","+e.getY()+", direction "+directionX+", "+directionY);
 			if (index == 0 && mDownTime != -1) { // check first down time
 				if ((e.getEventTime() - mDownTime) < THRESHOLD_START_MODE_O_INTERVAL)
@@ -142,11 +142,10 @@ public class ZOTouchListener implements View.OnTouchListener {
 		    	}
 				break;
 			}
-			return false;
 		}
 		
 		@Override
-		public boolean onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+		public void onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 //			Log.i(TAG, "Move e1="+e1+", e2="+e2+", distance "+distanceX+", "+distanceY);
 	    	switch(mMode) {
 	    	case MODE_O:
@@ -157,7 +156,6 @@ public class ZOTouchListener implements View.OnTouchListener {
 	    		break;
 	    	}
 	    	showPopupOnScreen((int)e2.getX(), (int)e2.getY());
-			return false;
 		}
 
 		@Override

@@ -222,18 +222,7 @@ public class TouchPaintView extends View {
 //    	for (int y=0; y<700; y+=100)
 //	        canvas.drawLine(-480, y, 480, y, mTextPaint);
 //    }
-    
-    private void touch_down(float x, float y) {
-        mPath.reset();
-        mPath.moveTo(x, y);
-        
-        clearTouchData();
-        addTouchData(x, y);
-    }
     private void touch_move(float x, float y) {
-        mPath.lineTo(x, y);
-        
-        addTouchData(x, y);
     }
     private void touch_up(float x, float y) {
     }
@@ -279,16 +268,25 @@ public class TouchPaintView extends View {
     	} else {
 	        switch (event.getActionMasked()) {
 	            case MotionEvent.ACTION_DOWN:
-	                touch_down(x, y);
-	                invalidate();
+	                mPath.reset();
+	                mPath.moveTo(x, y);
+
+	                clearTouchData();
+	                addTouchData(x, y);
 	                break;
 	            case MotionEvent.ACTION_MOVE:
-	                touch_move(x, y);
+	                for (int i = 0; i < event.getHistorySize(); i++) {
+	                	float historicalX = event.getHistoricalX(i);
+	                	float historicalY = event.getHistoricalY(i);
+	                	mPath.lineTo(historicalX, historicalY);
+		            	addTouchData(historicalX, historicalY);
+	                }
+	            	mPath.lineTo(x, y);
+	            	addTouchData(x, y);
+        
 	                invalidate();
 	                break;
 	            case MotionEvent.ACTION_UP:
-	                touch_up(x, y);
-	                invalidate();
 	                break;
 	        }
 	        return true;

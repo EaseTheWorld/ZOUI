@@ -41,10 +41,8 @@ public class StrokeGestureDetector {
 		 * @param index stroke index.
 		 * @param directionX x-direction of this stroke
 		 * @param directionY y-direction of this stroke
-		 * 
-		 * @return true if the event is consumed, else false 
 		 */
-		boolean onStrokeStart(MotionEvent e, int index, float directionX, float directionY);
+		void onStrokeStart(MotionEvent e, int index, float directionX, float directionY);
 		
 		/**
 		 * Notified when a stroke moves with the initial on stroke start {@link MotionEvent} and the current move {@link MotionEvent}.
@@ -54,10 +52,8 @@ public class StrokeGestureDetector {
 		 * @param e2 The motion event that triggered the current onStrokeMove.
 		 * @param distanceX The distance along the X axis that has been scrolled since the last call to onStrokeMove. This is NOT the distance between e1 and e2.
 		 * @param distanceY The distance along the Y axis that has been scrolled since the last call to onStrokeMove. This is NOT the distance between e1 and e2.
-		 * 
-		 * @return true if the event is consumed, else false 
 		 */
-		boolean onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY);
+		void onStrokeMove(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY);
 		
         /**
          * Notified when a up {@link MotionEvent} occurs.
@@ -137,24 +133,17 @@ public class StrokeGestureDetector {
         	mStrokeTracker.addTouchDown(x, y);
         	mStrokeIndex = 0;
             handled = true; // if ACTION_DOWN doesn't return true, ACTION_MOVE will not come.
-            
         	break;
         case MotionEvent.ACTION_MOVE:
-        	int state = mStrokeTracker.addTouchMove(x, y);
-        	switch(state) {
-        	case StrokeTracker.STROKE_START:
-	            if (mStrokeStartEvent != null)
-	                mStrokeStartEvent.recycle();
-	            mStrokeStartEvent = MotionEvent.obtain(ev);
-        		handled = mListener.onStrokeStart(mStrokeStartEvent, mStrokeIndex, mStrokeTracker.getStrokeStartDirection().x, mStrokeTracker.getStrokeStartDirection().y);
-	        	mStrokeIndex++;
-        		break;
-        	case StrokeTracker.STROKE_MOVE:
-        		handled = mListener.onStrokeMove(mStrokeStartEvent, ev, x - mLastMotionX, y - mLastMotionY);
-        		break;
+        	for (int i = 0; i < ev.getHistorySize(); i++) {
+        		float historicalX = ev.getHistoricalX(i);
+        		float historicalY = ev.getHistoricalY(i);
+        		handleTouchMove(ev, historicalX, historicalY);
+
+        		mLastMotionX = historicalX;
+        		mLastMotionY = historicalY;
         	}
-	        if (mIsSingleTap && state == StrokeTracker.STROKE_START)
-	        	mIsSingleTap = false;
+    		handleTouchMove(ev, x, y);
         	break;
         case MotionEvent.ACTION_UP:
         	if (mIsSingleTap)
@@ -168,5 +157,23 @@ public class StrokeGestureDetector {
         mLastMotionY = y;
 
         return handled;
+    }
+    
+    private void handleTouchMove(MotionEvent ev, float x, float y) {
+    	int state = mStrokeTracker.addTouchMove(x, y);
+    	switch(state) {
+    	case StrokeTracker.STROKE_START:
+            if (mStrokeStartEvent != null)
+                mStrokeStartEvent.recycle();
+            mStrokeStartEvent = MotionEvent.obtain(ev);
+    		mListener.onStrokeStart(mStrokeStartEvent, mStrokeIndex, mStrokeTracker.getStrokeStartDirection().x, mStrokeTracker.getStrokeStartDirection().y);
+        	mStrokeIndex++;
+    		break;
+    	case StrokeTracker.STROKE_MOVE:
+    		mListener.onStrokeMove(mStrokeStartEvent, ev, x - mLastMotionX, y - mLastMotionY);
+    		break;
+    	}
+        if (mIsSingleTap && state == StrokeTracker.STROKE_START)
+        	mIsSingleTap = false;
     }
 }
